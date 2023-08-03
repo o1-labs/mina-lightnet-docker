@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+# set -x
+# Exit script when commands fail
+set -e
+
+if [[ $# -lt 4 ]]; then
+  echo "Usage: $0 <Mina repository root path> <Proof level> <Docker Hub user name> <Docker Hub image tag> [<Accounts-Manager binary path>]"
+  exit 1
+fi
+
+START=$(date +%s)
+CURRENT_DIR="$(pwd)"
+
+MINA_REPO_DIR=${1}
+PROOF_LEVEL=${2}
+DOCKER_HUB_USER_NAME=${3}
+DOCKER_HUB_IMAGE_TAG=${4}
+TMP_FOLDER=$(mktemp -d)
+KEYS_LOCATION_TARGETS=(${TMP_FOLDER}/mina-local-network-2-1-1/nodes/fish_0/wallets/store/ ${TMP_FOLDER}/mina-local-network-2-1-1/nodes/node_0/wallets/store/ ${TMP_FOLDER}/mina-local-network-2-1-1/nodes/seed/wallets/store/ ${TMP_FOLDER}/mina-local-network-2-1-1/nodes/snark_coordinator/wallets/store/ ${TMP_FOLDER}/mina-local-network-2-1-1/nodes/snark_workers/worker_0/wallets/store/ ${TMP_FOLDER}/mina-local-network-2-1-1/nodes/whale_0/wallets/store/ ${TMP_FOLDER}/mina-local-network-2-1-1/nodes/whale_1/wallets/store/)
+
+echo ""
+echo "[INFO] Mina repository root: ${MINA_REPO_DIR}"
+echo "[INFO] Proof level: ${PROOF_LEVEL}"
+echo "[INFO] Docker Hub user name: ${DOCKER_HUB_USER_NAME}"
+echo "[INFO] Docker Hub image tag: ${DOCKER_HUB_IMAGE_TAG}"
+echo "[INFO] Temporary folder: ${TMP_FOLDER}"
+echo ""
+
+echo "Preparing the filesystem..."
+cp -r ./configuration/mina-local-network-2-1-1 ${TMP_FOLDER}/
+cp -r ./configuration/Dockerfile ${TMP_FOLDER}/
+cp -r ./configuration/nginx.conf ${TMP_FOLDER}/
+cp -r ./configuration/libssl1.1_1.1.1f-1ubuntu2.19_amd64.deb ${TMP_FOLDER}/
+cp -r ./scripts/spinup-testnet.sh ${TMP_FOLDER}/
+for KEYS_LOCATION_TARGET in "${KEYS_LOCATION_TARGETS[@]}"; do
+  cp -r ./configuration/key-pairs/* ${KEYS_LOCATION_TARGET}
+done
+cp -r ${MINA_REPO_DIR}/scripts/mina-local-network/mina-local-network.sh ${TMP_FOLDER}/
+cp -r ${MINA_REPO_DIR}/_build/default/src/app/cli/src/mina.exe ${TMP_FOLDER}/
+cp -r ${MINA_REPO_DIR}/src/app/libp2p_helper/result/bin/libp2p_helper ${TMP_FOLDER}/
+# cp -r ${MINA_REPO_DIR}/_build/default/src/app/archive/archive.exe ${TMP_FOLDER}/
+# cp -r ${MINA_REPO_DIR}/_build/default/src/app/logproc/logproc.exe ${TMP_FOLDER}/
+# cp -r ${MINA_REPO_DIR}/_build/default/src/app/zkapp_test_transaction/zkapp_test_transaction.exe ${TMP_FOLDER}/
+if [[ $# -eq 5 ]]; then
+  cp -r ${5} ${TMP_FOLDER}/
+  perl -i -p -e 's~# COPY accounts-manager /root/~COPY accounts-manager /root/~g' ${TMP_FOLDER}/Dockerfile
+  perl -i -p -e 's~# RUN chmod \+x accounts-manager~RUN chmod \+x accounts-manager~g' ${TMP_FOLDER}/Dockerfile
+  perl -i -p -e 's~# EXPOSE 8181~EXPOSE 8181~g' ${TMP_FOLDER}/Dockerfile
+fi
+
+echo ""
+echo "Updating local network manager paths..."
+perl -i -p -e 's~_build/default/src/app/cli/src/mina.exe~\./mina.exe~g' ${TMP_FOLDER}/mina-local-network.sh
+perl -i -p -e 's~_build/default/src/app/archive/archive.exe~\./archive.exe~g' ${TMP_FOLDER}/mina-local-network.sh
+perl -i -p -e 's~_build/default/src/app/logproc/logproc.exe~\./logproc.exe~g' ${TMP_FOLDER}/mina-local-network.sh
+perl -i -p -e 's~_build/default/src/app/zkapp_test_transaction/zkapp_test_transaction.exe~\./zkapp_test_transaction.exe~g' ${TMP_FOLDER}/mina-local-network.sh
+
+echo ""
+echo "Building the Docker image..."
+echo ""
+cd ${TMP_FOLDER}
+docker rmi -f ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG} || true
+docker rmi -f mina-local-network || true
+docker build -t mina-local-network --build-arg="PROOF_LEVEL=${PROOF_LEVEL}" .
+# Container example:
+# docker run -it --env NETWORK_TYPE="single-node" --env PROOF_LEVEL="none" -p 3085:3085 -p 8080:8080 -p 8181:8181 o1labs/mina-local-network:rampup-latest-lightnet
+# docker run -it --env NETWORK_TYPE="multi-node" --env PROOF_LEVEL="none" -p 4001:4001 -p 4006:4006 -p 5001:5001 -p 6001:6001 -p 8080:8080 -p 8181:8181 o1labs/mina-local-network:rampup-latest-lightnet
+
+echo ""
+echo "Publishing the Docker image..."
+docker tag mina-local-network ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG}
+docker push ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG}
+
+echo ""
+echo "Cleaning up..."
+rm -rf ${TMP_FOLDER}
+
+END=$(date +%s)
+cd ${CURRENT_DIR}
+RUNTIME=$(($(date +%s) - START))
+
+echo ""
+echo "[INFO] Done. Runtime: ${RUNTIME} seconds"
+echo "[INFO] Docker Hub link: https://hub.docker.com/r/${DOCKER_HUB_USER_NAME}/mina-local-network/tags"
+echo ""

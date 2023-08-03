@@ -1,0 +1,51 @@
+name: Build and publish Mina lightweight network Docker images
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch: {}
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Create mina-build-system cloud VM
+        uses: 3bit/setup-hcloud@v2
+      - run: hcloud server create --name mina-build-system --datacenter fsn1-dc14 --primary-ipv4 35577977 --image 120045803 --type cpx31 --ssh-key app@localhost --start-after-create
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HETZNER_API_TOKEN }}
+      - name: Sleep for 120 seconds
+        run: sleep 120s
+        shell: bash
+      - name: Update remote repository
+        uses: garygrossgarten/github-action-ssh@release
+        with:
+          command: bash -ilc "cd ${HOME}/projects/o1labs/mina-lightnet-docker && git stash && git pull && git reset && git clean -f && git checkout . && git submodule sync && git submodule update --recursive --init"
+          host: ${{ secrets.MINA_BUILD_SYSTEM_IP }}
+          username: app
+          privateKey: ${{ secrets.MINA_BUILD_SYSTEM_SSH_PRIVATE_KEY}}
+      - name: Build and publish Docker images
+        uses: garygrossgarten/github-action-ssh@release
+        with:
+          command: bash -ilc "/home/app/projects/o1labs/mina-lightnet-docker/scripts/build-all.sh ${HOME}/projects/o1labs/mina ${HOME}/projects/o1labs/mina-lightnet-docker ${HOME}/projects/p42/mina-accounts-manager o1labs \"develop berkeley rampup-before-accidental-merge\""
+          host: ${{ secrets.MINA_BUILD_SYSTEM_IP }}
+          username: app
+          privateKey: ${{ secrets.MINA_BUILD_SYSTEM_SSH_PRIVATE_KEY}}
+      - name: Sleep for 15 seconds
+        run: sleep 15s
+        shell: bash
+      - name: Power off the VM
+        uses: 3bit/setup-hcloud@v2
+      - run: hcloud server poweroff mina-build-system
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HETZNER_API_TOKEN }}
+      - name: Sleep for 15 seconds
+        run: sleep 15s
+        shell: bash
+      - name: Delete the VM
+        uses: 3bit/setup-hcloud@v2
+      - run: hcloud server delete mina-build-system
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HETZNER_API_TOKEN }}
+      - name: Sleep for 15 seconds
+        run: sleep 15s
+        shell: bash
