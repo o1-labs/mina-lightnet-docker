@@ -10,7 +10,7 @@ jobs:
     steps:
       - name: Create mina-build-system cloud VM
         uses: 3bit/setup-hcloud@v2
-      - run: hcloud server create --name mina-build-system --datacenter fsn1-dc14 --primary-ipv4 35577977 --image 120045803 --type cpx31 --ssh-key app@localhost --start-after-create
+      - run: hcloud server create --name mina-build-system --datacenter fsn1-dc14 --primary-ipv4 35577977 --image 121535411 --type cpx31 --ssh-key app@localhost --start-after-create
         env:
           HCLOUD_TOKEN: ${{ secrets.HETZNER_API_TOKEN }}
       - name: Sleep for 120 seconds
