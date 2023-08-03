@@ -17,19 +17,21 @@ jobs:
         run: sleep 120s
         shell: bash
       - name: Update remote repository
-        uses: garygrossgarten/github-action-ssh@release
+        uses: appleboy/ssh-action@v1.0.0
         with:
-          command: bash -ilc "cd ${HOME}/projects/o1labs/mina-lightnet-docker && git stash && git pull && git reset && git clean -f && git checkout . && git submodule sync && git submodule update --recursive --init"
           host: ${{ secrets.MINA_BUILD_SYSTEM_IP }}
-          username: app
-          privateKey: ${{ secrets.MINA_BUILD_SYSTEM_SSH_PRIVATE_KEY}}
+          username: ${{ secrets.MINA_BUILD_SYSTEM_SSH_USER_NAME }}
+          key: ${{ secrets.MINA_BUILD_SYSTEM_SSH_PRIVATE_KEY }}
+          script: bash -ilc "cd ${HOME}/projects/o1labs/mina-lightnet-docker && git stash && git pull && git reset && git clean -f && git checkout . && git submodule sync && git submodule update --recursive --init"
+          command_timeout: 170m
       - name: Build and publish Docker images
-        uses: garygrossgarten/github-action-ssh@release
+        uses: appleboy/ssh-action@v1.0.0
         with:
-          command: bash -ilc "/home/app/projects/o1labs/mina-lightnet-docker/scripts/build-all.sh ${HOME}/projects/o1labs/mina ${HOME}/projects/o1labs/mina-lightnet-docker ${HOME}/projects/p42/mina-accounts-manager o1labs \"develop berkeley rampup-before-accidental-merge\""
           host: ${{ secrets.MINA_BUILD_SYSTEM_IP }}
-          username: app
-          privateKey: ${{ secrets.MINA_BUILD_SYSTEM_SSH_PRIVATE_KEY}}
+          username: ${{ secrets.MINA_BUILD_SYSTEM_SSH_USER_NAME }}
+          key: ${{ secrets.MINA_BUILD_SYSTEM_SSH_PRIVATE_KEY }}
+          script: bash -ilc "/home/app/projects/o1labs/mina-lightnet-docker/scripts/build-all.sh ${HOME}/projects/o1labs/mina ${HOME}/projects/o1labs/mina-lightnet-docker ${HOME}/projects/p42/mina-accounts-manager o1labs \"develop berkeley rampup-before-accidental-merge\""
+          command_timeout: 170m
       - name: Sleep for 15 seconds
         run: sleep 15s
         shell: bash
