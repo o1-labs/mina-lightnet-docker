@@ -8,9 +8,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
-      - name: Create mina-build-system cloud VM
+      - name: Install and cache Hetzner Cloud CLI
         uses: 3bit/setup-hcloud@v2
-      - run: hcloud server create --name mina-build-system --datacenter fsn1-dc14 --primary-ipv4 35577977 --image 121535411 --type cpx31 --ssh-key app@localhost --start-after-create
+      - name: Create mina-build-system cloud VM
+        run: hcloud server create --name mina-build-system --datacenter fsn1-dc14 --primary-ipv4 35577977 --image 121535411 --type cpx31 --ssh-key app@localhost --start-after-create
         env:
           HCLOUD_TOKEN: ${{ secrets.HETZNER_API_TOKEN }}
       - name: Sleep for 120 seconds
@@ -36,16 +37,14 @@ jobs:
         run: sleep 15s
         shell: bash
       - name: Power off the VM
-        uses: 3bit/setup-hcloud@v2
-      - run: hcloud server poweroff mina-build-system
+        run: hcloud server poweroff mina-build-system
         env:
           HCLOUD_TOKEN: ${{ secrets.HETZNER_API_TOKEN }}
       - name: Sleep for 15 seconds
         run: sleep 15s
         shell: bash
       - name: Delete the VM
-        uses: 3bit/setup-hcloud@v2
-      - run: hcloud server delete mina-build-system
+        run: hcloud server delete mina-build-system
         env:
           HCLOUD_TOKEN: ${{ secrets.HETZNER_API_TOKEN }}
       - name: Sleep for 15 seconds

@@ -25,7 +25,7 @@ nginx-reload() {
 
 for ITEM in "${KEYS_FOR_PERMISSIONS_UPDATE[@]}"; do
   chmod 0700 ${ITEM}
-  chmod 0600 ${ITEM}/*
+  chmod 0600 ${ITEM}/*.*
 done
 
 if [ -f "${ACCOUNTS_MANAGER_EXE}" ]; then
