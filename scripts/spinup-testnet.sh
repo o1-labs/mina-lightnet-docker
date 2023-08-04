@@ -9,7 +9,7 @@ trap "killall background" EXIT
 LEDGER_FOLDER="$(pwd)/.mina-network/mina-local-network-2-1-1"
 GENESIS_LEDGER_CONFIG_FILE=${LEDGER_FOLDER}/daemon.json
 ACCOUNTS_MANAGER_EXE="$(pwd)/accounts-manager"
-KEYS_FOR_PERMISSIONS_UPDATE=($(pwd)/.mina-network/mina-local-network-2-1-1/libp2p_keys $(pwd)/.mina-network/mina-local-network-2-1-1/offline_fish_keys $(pwd)/.mina-network/mina-local-network-2-1-1/offline_whale_keys $(pwd)/.mina-network/mina-local-network-2-1-1/online_fish_keys $(pwd)/.mina-network/mina-local-network-2-1-1/online_whale_keys $(pwd)/.mina-network/mina-local-network-2-1-1/service-keys $(pwd)/.mina-network/mina-local-network-2-1-1/snark_coordinator_keys $(pwd)/.mina-network/mina-local-network-2-1-1/zkapp_keys)
+KEYS_FOR_PERMISSIONS_UPDATE=($(pwd)/.mina-network/mina-local-network-2-1-1/libp2p_keys $(pwd)/.mina-network/mina-local-network-2-1-1/offline_fish_keys $(pwd)/.mina-network/mina-local-network-2-1-1/offline_whale_keys $(pwd)/.mina-network/mina-local-network-2-1-1/online_fish_keys $(pwd)/.mina-network/mina-local-network-2-1-1/online_whale_keys $(pwd)/.mina-network/mina-local-network-2-1-1/service-keys $(pwd)/.mina-network/mina-local-network-2-1-1/snark_coordinator_keys $(pwd)/.mina-network/mina-local-network-2-1-1/zkapp_keys $(pwd)/.mina-network/mina-local-network-2-1-1/nodes/fish_0/wallets/store/ $(pwd)/.mina-network/mina-local-network-2-1-1/nodes/node_0/wallets/store/ $(pwd)/.mina-network/mina-local-network-2-1-1/nodes/seed/wallets/store/ $(pwd)/.mina-network/mina-local-network-2-1-1/nodes/whale_0/wallets/store/ $(pwd)/.mina-network/mina-local-network-2-1-1/nodes/whale_1/wallets/store/)
 
 nginx-reload() {
   GRAPHQL_PORT=${1}
@@ -25,7 +25,7 @@ nginx-reload() {
 
 for ITEM in "${KEYS_FOR_PERMISSIONS_UPDATE[@]}"; do
   chmod 0700 ${ITEM}
-  chmod 0600 ${ITEM}/*.*
+  chmod 0600 ${ITEM}/*
 done
 
 if [ -f "${ACCOUNTS_MANAGER_EXE}" ]; then
