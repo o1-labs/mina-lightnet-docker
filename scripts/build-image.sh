@@ -30,15 +30,17 @@ echo "Preparing the filesystem..."
 cp -r ./configuration/mina-local-network-2-1-1 ${TMP_FOLDER}/
 cp -r ./configuration/Dockerfile ${TMP_FOLDER}/
 cp -r ./configuration/nginx.conf ${TMP_FOLDER}/
-cp -r ./configuration/libssl1.1_1.1.1f-1ubuntu2.19_amd64.deb ${TMP_FOLDER}/
 cp -r ./scripts/spinup-testnet.sh ${TMP_FOLDER}/
 for KEYS_LOCATION_TARGET in "${KEYS_LOCATION_TARGETS[@]}"; do
   cp -r ./configuration/key-pairs/* ${KEYS_LOCATION_TARGET}
 done
 cp -r ${MINA_REPO_DIR}/scripts/mina-local-network/mina-local-network.sh ${TMP_FOLDER}/
+cp -r ${MINA_REPO_DIR}/src/app/archive/drop_tables.sql ${TMP_FOLDER}/
+cp -r ${MINA_REPO_DIR}/src/app/archive/create_schema.sql ${TMP_FOLDER}/
+cp -r ${MINA_REPO_DIR}/src/app/archive/zkapp_tables.sql ${TMP_FOLDER}/
 cp -r ${MINA_REPO_DIR}/_build/default/src/app/cli/src/mina.exe ${TMP_FOLDER}/
 cp -r ${MINA_REPO_DIR}/src/app/libp2p_helper/result/bin/libp2p_helper ${TMP_FOLDER}/
-# cp -r ${MINA_REPO_DIR}/_build/default/src/app/archive/archive.exe ${TMP_FOLDER}/
+cp -r ${MINA_REPO_DIR}/_build/default/src/app/archive/archive.exe ${TMP_FOLDER}/
 # cp -r ${MINA_REPO_DIR}/_build/default/src/app/logproc/logproc.exe ${TMP_FOLDER}/
 # cp -r ${MINA_REPO_DIR}/_build/default/src/app/zkapp_test_transaction/zkapp_test_transaction.exe ${TMP_FOLDER}/
 if [[ $# -eq 5 ]]; then
@@ -62,9 +64,6 @@ cd ${TMP_FOLDER}
 docker rmi -f ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG} || true
 docker rmi -f mina-local-network || true
 docker build -t mina-local-network --build-arg="PROOF_LEVEL=${PROOF_LEVEL}" .
-# Container example:
-# docker run -it --env NETWORK_TYPE="single-node" --env PROOF_LEVEL="none" -p 3085:3085 -p 8080:8080 -p 8181:8181 o1labs/mina-local-network:rampup-latest-lightnet
-# docker run -it --env NETWORK_TYPE="multi-node" --env PROOF_LEVEL="none" -p 4001:4001 -p 4006:4006 -p 5001:5001 -p 6001:6001 -p 8080:8080 -p 8181:8181 o1labs/mina-local-network:rampup-latest-lightnet
 
 echo ""
 echo "Publishing the Docker image..."
