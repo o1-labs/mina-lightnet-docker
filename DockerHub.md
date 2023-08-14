@@ -1,4 +1,4 @@
-# Repository overview
+# Lightweight Mina Network Docker Images
 
 Spin up lightweight Mina network within the single container.
 
