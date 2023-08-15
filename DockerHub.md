@@ -11,7 +11,7 @@ Each Docker image is packaged with the genesis ledger configuration with more th
 - This Docker image exposes port `8080` that is served by the NGINX reverse proxy with proper cross-origin resource sharing (CORS) management and passes requests to an available Mina Daemon GraphQL endpoint.
 - To ensure that the SnarkyJS zkApps applications work without additional environment configuration, you must use an endpoint like `http://localhost:8080/graphql` to communicate with the Mina GraphQL endpoint.
 
-By default, containers run the [Mina Archive Node](https://docs.minaprotocol.com/node-operators/archive-node) along with the PostgreSQL RDBMS that stores the blockchain data. The Mina archive node is a regular mina daemon that is connected to a running archive process.
+By default, containers run the [Mina Archive Node](https://docs.minaprotocol.com/node-operators/archive-node) along with the PostgreSQL RDBMS that stores the blockchain data.
 
   - To prevent the Mina Archive Node and RDBMS from running in the container, set the `RUN_ARCHIVE_NODE` environment variable to `false`.
 
@@ -19,7 +19,7 @@ By default, containers run the [Mina Archive Node](https://docs.minaprotocol.com
     docker run ... --env RUN_ARCHIVE_NODE="false" ...
     ```
 
-The PostgreSQL connection can be used for other needs, including the [Archive-Node-API](https://github.com/o1-labs/Archive-Node-API). 
+Connection to the container's PostgreSQL can be used for other needs, including the [Archive-Node-API](https://github.com/o1-labs/Archive-Node-API). 
 
   - The default PostgreSQL connection string is:
 
