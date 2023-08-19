@@ -54,12 +54,12 @@ docker run -it --env NETWORK_TYPE="single-node" --env PROOF_LEVEL="none" -p 3085
 - ~815-850 MB of RAM consumption after initial spike and if stays alive during less than 2 hours ~= 1/2 epoch
 - The startup and sync time is ~1-2 minutes
 
-#### Logs
+#### Single Node Logs
 
-By default the Mina Daemon(s) logging will be redirected to the following file inside the container:
+By default the Mina logging will be redirected into the files located by the following path pattern inside the container:
 
 ```shell
-/root/logs/single-node-network.log
+/root/logs/*.log
 ```
 
 You can always use Docker Volumes to map the corresponding logs storage path inside the container to the host machine.
@@ -97,12 +97,12 @@ jobs:
         with:
           mina-graphql-port: 8080
       ...
-      - name: Upload Mina Daemon(s) logs
+      - name: Upload Mina logs
         uses: actions/upload-artifact@v3
         with:
           if-no-files-found: ignore
-          name: mina-daemon-logs
-          path: /tmp/single-node-network.log
+          name: mina-logs
+          path: /tmp/*.log
           retention-days: 5
 ```
 
@@ -120,6 +120,14 @@ docker run -it --env NETWORK_TYPE="multi-node" --env PROOF_LEVEL="none" -p 4001:
 - 5-8 transactions per block
 - ~5.5-6+ GB of RAM consumption
 - The startup and sync time is ~4-6 minutes
+
+#### Multi-Node Logs
+
+By default the Mina logging will be redirected into the files located by the following path pattern inside the container:
+
+```shell
+/root/mina-local-network-2-1-1/nodes/**/logs/*.log
+```
 
 ## Image tags anatomy
 

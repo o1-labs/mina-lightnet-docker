@@ -66,6 +66,9 @@ if [ -f "${ACCOUNTS_MANAGER_EXE}" ]; then
 fi
 
 if [[ $NETWORK_TYPE == "single-node" ]]; then
+  mkdir -p $(pwd)/logs || true
+  ARCHIVE_LOG_FILE_PATH=$(pwd)/logs/archive-node-network.log
+  DAEMON_LOG_FILE_PATH=$(pwd)/logs/single-node-network.log
   ARCHIVE_CLI_ARGS=""
 
   echo ""
@@ -80,22 +83,21 @@ if [[ $NETWORK_TYPE == "single-node" ]]; then
   nginx-reload 3085
 
   if [[ $RUN_ARCHIVE_NODE == "true" ]]; then
-    mkdir -p $(pwd)/logs || true
-    LOG_FILE_PATH=$(pwd)/logs/single-node-network.log
     ARCHIVE_CLI_ARGS="--archive-address ${ARCHIVE_NODE_PORT}"
 
     echo "Starting the Archive Node..."
+    echo "Mina Archive node log file: ${ARCHIVE_LOG_FILE_PATH}"
     echo ""
     $(pwd)/archive.exe run \
       --config-file ${GENESIS_LEDGER_CONFIG_FILE} \
       --log-level Trace \
       --postgres-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${RDBMS_PORT}/${POSTGRES_DB} \
-      --server-port ${ARCHIVE_NODE_PORT} &
+      --server-port ${ARCHIVE_NODE_PORT} >${ARCHIVE_LOG_FILE_PATH} 2>&1 &
     wait-for-service ${ARCHIVE_NODE_PORT}
   fi
 
   echo "Starting the Mina Daemon..."
-  echo "Mina Daemon(s) log file: ${LOG_FILE_PATH}"
+  echo "Mina Daemon log file: ${DAEMON_LOG_FILE_PATH}"
   echo ""
   MINA_PRIVKEY_PASS="naughty blue worm" \
     MINA_LIBP2P_PASS="naughty blue worm" \
@@ -112,7 +114,7 @@ if [[ $NETWORK_TYPE == "single-node" ]]; then
     --log-level Trace \
     --file-log-level Trace \
     --demo-mode \
-    --seed ${ARCHIVE_CLI_ARGS} >${LOG_FILE_PATH} 2>&1
+    --seed ${ARCHIVE_CLI_ARGS} >${DAEMON_LOG_FILE_PATH} 2>&1
 elif [[ $NETWORK_TYPE == "multi-node" ]]; then
   ARCHIVE_CLI_ARGS=""
 
