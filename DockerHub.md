@@ -56,7 +56,7 @@ docker run -it --env NETWORK_TYPE="single-node" --env PROOF_LEVEL="none" -p 3085
 
 #### Single Node Logs
 
-By default the Mina logging will be redirected into the files located by the following path pattern inside the container:
+By default, logs produced by the Mina processes will be redirected into the files located by the following path pattern inside the container:
 
 ```shell
 /root/logs/*.log
@@ -123,7 +123,7 @@ docker run -it --env NETWORK_TYPE="multi-node" --env PROOF_LEVEL="none" -p 4001:
 
 #### Multi-Node Logs
 
-By default the Mina logging will be redirected into the files located by the following path pattern inside the container:
+By default, logs produced by the Mina processes will be redirected into the files located by the following path pattern inside the container:
 
 ```shell
 /root/mina-local-network-2-1-1/nodes/**/logs/*.log
