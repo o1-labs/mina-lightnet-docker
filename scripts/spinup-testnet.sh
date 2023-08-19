@@ -80,6 +80,8 @@ if [[ $NETWORK_TYPE == "single-node" ]]; then
   nginx-reload 3085
 
   if [[ $RUN_ARCHIVE_NODE == "true" ]]; then
+    mkdir -p $(pwd)/logs || true
+    LOG_FILE_PATH=$(pwd)/logs/single-node-network.log
     ARCHIVE_CLI_ARGS="--archive-address ${ARCHIVE_NODE_PORT}"
 
     echo "Starting the Archive Node..."
@@ -93,6 +95,7 @@ if [[ $NETWORK_TYPE == "single-node" ]]; then
   fi
 
   echo "Starting the Mina Daemon..."
+  echo "Mina Daemon(s) log file: ${LOG_FILE_PATH}"
   echo ""
   MINA_PRIVKEY_PASS="naughty blue worm" \
     MINA_LIBP2P_PASS="naughty blue worm" \
@@ -109,7 +112,7 @@ if [[ $NETWORK_TYPE == "single-node" ]]; then
     --log-level Trace \
     --file-log-level Trace \
     --demo-mode \
-    --seed ${ARCHIVE_CLI_ARGS}
+    --seed ${ARCHIVE_CLI_ARGS} >${LOG_FILE_PATH} 2>&1
 elif [[ $NETWORK_TYPE == "multi-node" ]]; then
   ARCHIVE_CLI_ARGS=""
 

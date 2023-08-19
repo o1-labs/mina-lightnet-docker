@@ -13,19 +13,19 @@ Each Docker image is packaged with the genesis ledger configuration with more th
 
 By default, containers run the [Mina Archive Node](https://docs.minaprotocol.com/node-operators/archive-node) along with the PostgreSQL RDBMS that stores the blockchain data.
 
-  - To prevent the Mina Archive Node and RDBMS from running in the container, set the `RUN_ARCHIVE_NODE` environment variable to `false`.
+- To prevent the Mina Archive Node and RDBMS from running in the container, set the `RUN_ARCHIVE_NODE` environment variable to `false`.
 
-    ```shell
-    docker run ... --env RUN_ARCHIVE_NODE="false" ...
-    ```
+  ```shell
+  docker run ... --env RUN_ARCHIVE_NODE="false" ...
+  ```
 
-Connection to the container's PostgreSQL can be used for other needs, including the [Archive-Node-API](https://github.com/o1-labs/Archive-Node-API). 
+Connection to the container's PostgreSQL can be used for other needs, including the [Archive-Node-API](https://github.com/o1-labs/Archive-Node-API).
 
-  - The default PostgreSQL connection string is:
+- The default PostgreSQL connection string is:
 
-    ```shell
-    postgresql://postgres:postgres@localhost:5432/archive
-    ```
+  ```shell
+  postgresql://postgres:postgres@localhost:5432/archive
+  ```
 
 ## Mina accounts manager
 
@@ -53,6 +53,58 @@ docker run -it --env NETWORK_TYPE="single-node" --env PROOF_LEVEL="none" -p 3085
 - 5-8 transactions per block
 - ~815-850 MB of RAM consumption after initial spike and if stays alive during less than 2 hours ~= 1/2 epoch
 - The startup and sync time is ~1-2 minutes
+
+#### Logs
+
+By default the Mina Daemon(s) logging will be redirected to the following file inside the container:
+
+```shell
+/root/logs/single-node-network.log
+```
+
+You can always use Docker Volumes to map the corresponding logs storage path inside the container to the host machine.
+
+```shell
+docker run ... --mount "type=bind,source=/tmp,dst=/root/logs" ...
+```
+
+It is especially useful if you want to keep the logs after the container is stopped and deleted. For example when used in CI/CD pipelines.
+
+[GitHub Actions](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idservices) example:
+
+```yaml
+...
+jobs:
+  my-job:
+    ...
+    services:
+      mina-local-network:
+        image: o1labs/mina-local-network:rampup-latest-lightnet
+        env:
+          NETWORK_TYPE: 'single-node'
+          PROOF_LEVEL: 'none'
+        ports:
+          - 3085:3085
+          - 5432:5432
+          - 8080:8080
+          - 8181:8181
+        volumes:
+          - /tmp:/root/logs
+      ...
+    steps:
+      - name: Wait for Mina Network readiness
+        uses: o1-labs/wait-for-mina-network-action@v1
+        with:
+          mina-graphql-port: 8080
+      ...
+      - name: Upload Mina Daemon(s) logs
+        uses: actions/upload-artifact@v3
+        with:
+          if-no-files-found: ignore
+          name: mina-daemon-logs
+          path: /tmp/single-node-network.log
+          retention-days: 5
+```
 
 ### Multi-Node
 
