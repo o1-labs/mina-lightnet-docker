@@ -39,9 +39,9 @@ To keep the accounts pool available for other tasks, be sure to release used acc
 
 ## Usage
 
-### CI/CD
+### GitHub Actions CI/CD
 
-Before the mina network in the Docker service container can be used, it must reach a synchronized state after starting the Docker container. You can use the [wait-for-mina-network](https://github.com/marketplace/actions/wait-for-mina-network) GitHub Action.
+Before the Mina network can be used in your Job or Jobs step, it must reach a synchronized state after starting the corresponding [service container](https://docs.github.com/en/actions/using-containerized-services/about-service-containers) start up. You can use the [wait-for-mina-network](https://github.com/marketplace/actions/wait-for-mina-network) to automate this process.
 
 ### Single Node
 
