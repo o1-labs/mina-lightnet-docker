@@ -80,6 +80,13 @@ for TARGET_BRANCH in "${TARGET_BRANCHES[@]}"; do
   if [[ $TARGET_BRANCH == "rampup-before-accidental-merge" ]]; then
     BRANCH_NAME="rampup"
   fi
+  if [[ $TARGET_BRANCH == "berkeley" ]]; then
+    goenv install 1.19.12
+    goenv global 1.19.12
+  else
+    goenv install 1.18.10
+    goenv global 1.18.10
+  fi
   gitPullAll && gitPullAll
   git checkout ${TARGET_BRANCH}
   gitPullAll && gitPullAll
