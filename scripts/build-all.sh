@@ -27,6 +27,7 @@ cd ${CURRENT_DIR}
 gitPullAll() {
   for DIR in $(find ${GIT_PULL_ALL_DIR} -maxdepth 1 -mindepth 1 -type d); do
     cd ${DIR}
+    echo ""
     echo "Updating the \"$(pwd)\" repo:"
     if [[ ${DIR} == *"mina" ]]; then
       cd src/lib/snarkyjs/src/bindings
@@ -75,7 +76,7 @@ cd ${CURRENT_DIR}
 echo ""
 echo "[INFO] Updating GoEnv"
 echo ""
-cd ${HOME}/.goenv && git pull && cd -
+cd ${HOME}/.goenv && git fetch --all && git pull && cd -
 
 for TARGET_BRANCH in "${TARGET_BRANCHES[@]}"; do
   echo ""
@@ -86,12 +87,22 @@ for TARGET_BRANCH in "${TARGET_BRANCHES[@]}"; do
     BRANCH_NAME="rampup"
   fi
   if [[ $TARGET_BRANCH == "berkeley" ]]; then
-    goenv install 1.19.12
+    goenv install --skip-existing 1.19.12
     goenv global 1.19.12
   else
-    goenv install 1.18.10
+    goenv install --skip-existing 1.18.10
     goenv global 1.18.10
   fi
+
+  echo ""
+  echo "[INFO] Updating GoEnv environment variables"
+  echo ""
+  export GOENV_ROOT="$HOME/.goenv"
+  export PATH="$GOENV_ROOT/bin:$PATH"
+  eval "$(goenv init -)"
+  export PATH="$GOROOT/bin:$PATH"
+  export PATH="$PATH:$GOPATH/bin"
+
   gitPullAll && gitPullAll
   git checkout ${TARGET_BRANCH}
   gitPullAll && gitPullAll
