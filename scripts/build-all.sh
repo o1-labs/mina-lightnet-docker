@@ -72,6 +72,11 @@ git stash && git pull && git reset && git clean -f && git checkout . && git subm
 ./gradlew nativeCompile
 cd ${CURRENT_DIR}
 
+echo ""
+echo "[INFO] Updating GoEnv"
+echo ""
+cd ${HOME}/.goenv && git pull && cd -
+
 for TARGET_BRANCH in "${TARGET_BRANCHES[@]}"; do
   echo ""
   echo "[INFO] Building Mina at branch: '${TARGET_BRANCH}' and then the corresponding Docker Image"
