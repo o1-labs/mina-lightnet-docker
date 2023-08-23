@@ -1,6 +1,6 @@
 # Lightweight Mina Network Docker Images
 
-Spin up lightweight Mina network within the single container.
+Spin up a lightweight Mina network within the single container.
 
 These Docker images provide a simple and efficient way to deploy and run lightweight Mina blockchain networks for testing purposes. It is an implementation of the [Dockerization of Mina local networks](https://github.com/o1-labs/rfcs/blob/main/0004-dockerised-local-network.md) RFC.
 
@@ -38,6 +38,10 @@ An example use case this application is parallel automated tests execution again
 To keep the accounts pool available for other tasks, be sure to release used accounts after you've done with your work.
 
 ## Usage
+
+### GitHub Actions CI/CD
+
+Before the Mina network can be used in your Job steps, it must reach the synchronized state after the corresponding [service container](https://docs.github.com/en/actions/using-containerized-services/about-service-containers) start up. You can use the [wait-for-mina-network](https://github.com/marketplace/actions/wait-for-mina-network) GitHub Action to automate this process.
 
 ### Single Node
 
