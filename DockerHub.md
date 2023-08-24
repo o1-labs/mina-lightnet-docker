@@ -41,7 +41,7 @@ To keep the accounts pool available for other tasks, be sure to release used acc
 
 ### GitHub Actions CI/CD
 
-Before the Mina network can be used in your Job steps, it must reach the synchronized state after the corresponding [service container](https://docs.github.com/en/actions/using-containerized-services/about-service-containers) start up. You can use the [wait-for-mina-network](https://github.com/marketplace/actions/wait-for-mina-network) GitHub Action to automate this process.
+Before the Mina network can be used in your job or jobs steps, it must reach the synchronized state after the corresponding [service container](https://docs.github.com/en/actions/using-containerized-services/about-service-containers) startup. You can use the [wait-for-mina-network](https://github.com/marketplace/actions/wait-for-mina-network) GitHub Action to automate this process.
 
 ### Single Node
 
