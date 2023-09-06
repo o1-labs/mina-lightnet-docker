@@ -30,6 +30,7 @@ gitPullAll() {
     echo ""
     echo "Updating the \"$(pwd)\" repo:"
     if [[ ${DIR} == *"mina" ]]; then
+      # TODO: Update after submodule will be changed to "o1js"
       cd src/lib/snarkyjs/src/bindings
       git stash
       cd ../../../../../
