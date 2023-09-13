@@ -87,22 +87,23 @@ for TARGET_BRANCH in "${TARGET_BRANCHES[@]}"; do
   if [[ $TARGET_BRANCH == "rampup-before-accidental-merge" ]]; then
     BRANCH_NAME="rampup"
   fi
-  # if [[ $TARGET_BRANCH == "berkeley" ]]; then
-  #   goenv install --skip-existing 1.19.12
-  #   goenv global 1.19.12
-  # else
-  #   goenv install --skip-existing 1.18.10
-  #   goenv global 1.18.10
-  # fi
 
-  # echo ""
-  # echo "[INFO] Updating GoEnv environment variables"
-  # echo ""
-  # export GOENV_ROOT="$HOME/.goenv"
-  # export PATH="$GOENV_ROOT/bin:$PATH"
-  # eval "$(goenv init -)"
-  # export PATH="$GOROOT/bin:$PATH"
-  # export PATH="$PATH:$GOPATH/bin"
+  if [[ $TARGET_BRANCH == "berkeley" ]]; then
+    goenv install --skip-existing 1.19.12
+    goenv global 1.19.12
+  else
+    goenv install --skip-existing 1.18.10
+    goenv global 1.18.10
+  fi
+
+  echo ""
+  echo "[INFO] Updating GoEnv environment variables"
+  echo ""
+  export GOENV_ROOT="$HOME/.goenv"
+  export PATH="$GOENV_ROOT/bin:$PATH"
+  eval "$(goenv init -)"
+  export PATH="$GOROOT/bin:$PATH"
+  export PATH="$PATH:$GOPATH/bin"
 
   gitPullAll && gitPullAll
   git checkout ${TARGET_BRANCH}
