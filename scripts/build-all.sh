@@ -74,11 +74,6 @@ git stash && git pull && git reset && git clean -f && git checkout . && git subm
 ./gradlew nativeCompile
 cd ${CURRENT_DIR}
 
-echo ""
-echo "[INFO] Updating GoEnv"
-echo ""
-cd ${HOME}/.goenv && git fetch --all && git pull && cd -
-
 for TARGET_BRANCH in "${TARGET_BRANCHES[@]}"; do
   echo ""
   echo "[INFO] Building Mina at branch: '${TARGET_BRANCH}' and then the corresponding Docker Image"
@@ -88,33 +83,22 @@ for TARGET_BRANCH in "${TARGET_BRANCHES[@]}"; do
     BRANCH_NAME="rampup"
   fi
 
-  if [[ $TARGET_BRANCH == "berkeley" ]]; then
-    goenv install --skip-existing 1.19.12
-    goenv global 1.19.12
-  else
-    goenv install --skip-existing 1.18.10
-    goenv global 1.18.10
-  fi
-
-  echo ""
-  echo "[INFO] Updating GoEnv environment variables"
-  echo ""
-  export GOENV_ROOT="$HOME/.goenv"
-  export PATH="$GOENV_ROOT/bin:$PATH"
-  eval "$(goenv init -)"
-  export PATH="$GOROOT/bin:$PATH"
-  export PATH="$PATH:$GOPATH/bin"
-
   gitPullAll && gitPullAll
   git checkout ${TARGET_BRANCH}
   gitPullAll && gitPullAll
   opam switch import --switch mina --yes opam.export
   chmod +x scripts/pin-external-packages.sh
   ./scripts/pin-external-packages.sh
+  echo ""
+  echo "[INFO] For Devnet dune profile..."
+  echo ""
   buildMina "devnet" false
   cd ${DOCKER_IMAGE_BUILDING_SCRIPTS_REPO_DIR}
   ./scripts/build-image.sh ${HOME}/projects/o1labs/mina full ${DOCKER_HUB_USER_NAME} ${BRANCH_NAME}-latest-devnet ${MINA_ACCOUNTS_MANAGER_REPO_DIR}/build/native/nativeCompile/accounts-manager
   gitPullAll && gitPullAll
+  echo ""
+  echo "[INFO] For Lightnet dune profile..."
+  echo ""
   buildMina "lightnet" false
   cd ${DOCKER_IMAGE_BUILDING_SCRIPTS_REPO_DIR}
   ./scripts/build-image.sh ${HOME}/projects/o1labs/mina none ${DOCKER_HUB_USER_NAME} ${BRANCH_NAME}-latest-lightnet ${MINA_ACCOUNTS_MANAGER_REPO_DIR}/build/native/nativeCompile/accounts-manager
