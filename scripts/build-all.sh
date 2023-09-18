@@ -57,13 +57,14 @@ buildMina() {
     DUNE_BUILD_COMMAND="dune build --instrument-with bisect_ppx"
   fi
   sudo make clean
-  MINA_COMMIT_SHA1=$(git rev-parse HEAD) \
-  DUNE_PROFILE="${1}" \
-    ${DUNE_BUILD_COMMAND} \
+  export MINA_COMMIT_SHA1=$(git rev-parse HEAD)
+  export DUNE_PROFILE="${1}"
+
+  make libp2p_helper
+  ${DUNE_BUILD_COMMAND} \
     src/app/cli/src/mina.exe \
     src/app/logproc/logproc.exe \
     src/app/archive/archive.exe
-  make libp2p_helper
 }
 
 echo ""
