@@ -41,29 +41,13 @@ jobs:
           key: ${{ secrets.MINA_BUILD_SYSTEM_SSH_PRIVATE_KEY }}
           script: bash -ilc "goenv install --skip-existing 1.19.12 && goenv global 1.19.12"
           command_timeout: 170m
-      - name: Build and publish Docker images (Develop and Berkeley branches)
+      - name: Build and publish Docker images (major branches)
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.MINA_BUILD_SYSTEM_IP }}
           username: ${{ secrets.MINA_BUILD_SYSTEM_SSH_USER_NAME }}
           key: ${{ secrets.MINA_BUILD_SYSTEM_SSH_PRIVATE_KEY }}
-          script: bash -ilc "${HOME}/projects/o1labs/mina-lightnet-docker/scripts/build-all.sh ${HOME}/projects/o1labs/mina ${HOME}/projects/o1labs/mina-lightnet-docker ${HOME}/projects/p42/mina-accounts-manager o1labs \"develop berkeley\""
-          command_timeout: 170m
-      - name: Install Go 1.18.10
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.MINA_BUILD_SYSTEM_IP }}
-          username: ${{ secrets.MINA_BUILD_SYSTEM_SSH_USER_NAME }}
-          key: ${{ secrets.MINA_BUILD_SYSTEM_SSH_PRIVATE_KEY }}
-          script: bash -ilc "goenv install --skip-existing 1.18.10 && goenv global 1.18.10"
-          command_timeout: 170m
-      - name: Build and publish Docker images (Rampup branch)
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.MINA_BUILD_SYSTEM_IP }}
-          username: ${{ secrets.MINA_BUILD_SYSTEM_SSH_USER_NAME }}
-          key: ${{ secrets.MINA_BUILD_SYSTEM_SSH_PRIVATE_KEY }}
-          script: bash -ilc "${HOME}/projects/o1labs/mina-lightnet-docker/scripts/build-all.sh ${HOME}/projects/o1labs/mina ${HOME}/projects/o1labs/mina-lightnet-docker ${HOME}/projects/p42/mina-accounts-manager o1labs \"rampup\""
+          script: bash -ilc "${HOME}/projects/o1labs/mina-lightnet-docker/scripts/build-all.sh ${HOME}/projects/o1labs/mina ${HOME}/projects/o1labs/mina-lightnet-docker ${HOME}/projects/p42/mina-accounts-manager o1labs \"develop berkeley rampup\""
           command_timeout: 170m
       - name: Sleep for 15 seconds
         run: sleep 15s
