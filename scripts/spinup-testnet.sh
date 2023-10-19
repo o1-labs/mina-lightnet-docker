@@ -15,6 +15,8 @@ GENESIS_LEDGER_CONFIG_FILE=${LEDGER_FOLDER}/daemon.json
 ACCOUNTS_MANAGER_EXE="${HOME}/accounts-manager"
 KEYS_FOR_PERMISSIONS_UPDATE=(${HOME}/.mina-network/mina-local-network-2-1-1/libp2p_keys ${HOME}/.mina-network/mina-local-network-2-1-1/offline_fish_keys ${HOME}/.mina-network/mina-local-network-2-1-1/offline_whale_keys ${HOME}/.mina-network/mina-local-network-2-1-1/online_fish_keys ${HOME}/.mina-network/mina-local-network-2-1-1/online_whale_keys ${HOME}/.mina-network/mina-local-network-2-1-1/service-keys ${HOME}/.mina-network/mina-local-network-2-1-1/snark_coordinator_keys ${HOME}/.mina-network/mina-local-network-2-1-1/zkapp_keys ${HOME}/.mina-network/mina-local-network-2-1-1/nodes/fish_0/wallets/store/ ${HOME}/.mina-network/mina-local-network-2-1-1/nodes/node_0/wallets/store/ ${HOME}/.mina-network/mina-local-network-2-1-1/nodes/seed/wallets/store/ ${HOME}/.mina-network/mina-local-network-2-1-1/nodes/whale_0/wallets/store/ ${HOME}/.mina-network/mina-local-network-2-1-1/nodes/whale_1/wallets/store/)
 
+mkdir -p ${HOME}/logs || true
+
 wait-for-service() {
   echo ""
   while ! nc -z localhost ${1}; do
@@ -81,7 +83,6 @@ if [ -f "${ACCOUNTS_MANAGER_EXE}" ]; then
 fi
 
 if [[ $NETWORK_TYPE == "single-node" ]]; then
-  mkdir -p ${HOME}/logs || true
   ARCHIVE_LOG_FILE_PATH=${HOME}/logs/archive-node-network.log
   DAEMON_LOG_FILE_PATH=${HOME}/logs/single-node-network.log
   ARCHIVE_CLI_ARGS=""
