@@ -9,10 +9,11 @@ trap "killall background" EXIT
 ARCHIVE_NODE_PORT=3086
 RDBMS_PORT=5432
 ARCHIVE_NODE_API_PORT=8282
-LEDGER_FOLDER="$(pwd)/.mina-network/mina-local-network-2-1-1"
+ARCHIVE_NODE_API_LOG_FILE_PATH=${HOME}/logs/archive-node-api.log
+LEDGER_FOLDER="${HOME}/.mina-network/mina-local-network-2-1-1"
 GENESIS_LEDGER_CONFIG_FILE=${LEDGER_FOLDER}/daemon.json
-ACCOUNTS_MANAGER_EXE="$(pwd)/accounts-manager"
-KEYS_FOR_PERMISSIONS_UPDATE=($(pwd)/.mina-network/mina-local-network-2-1-1/libp2p_keys $(pwd)/.mina-network/mina-local-network-2-1-1/offline_fish_keys $(pwd)/.mina-network/mina-local-network-2-1-1/offline_whale_keys $(pwd)/.mina-network/mina-local-network-2-1-1/online_fish_keys $(pwd)/.mina-network/mina-local-network-2-1-1/online_whale_keys $(pwd)/.mina-network/mina-local-network-2-1-1/service-keys $(pwd)/.mina-network/mina-local-network-2-1-1/snark_coordinator_keys $(pwd)/.mina-network/mina-local-network-2-1-1/zkapp_keys $(pwd)/.mina-network/mina-local-network-2-1-1/nodes/fish_0/wallets/store/ $(pwd)/.mina-network/mina-local-network-2-1-1/nodes/node_0/wallets/store/ $(pwd)/.mina-network/mina-local-network-2-1-1/nodes/seed/wallets/store/ $(pwd)/.mina-network/mina-local-network-2-1-1/nodes/whale_0/wallets/store/ $(pwd)/.mina-network/mina-local-network-2-1-1/nodes/whale_1/wallets/store/)
+ACCOUNTS_MANAGER_EXE="${HOME}/accounts-manager"
+KEYS_FOR_PERMISSIONS_UPDATE=(${HOME}/.mina-network/mina-local-network-2-1-1/libp2p_keys ${HOME}/.mina-network/mina-local-network-2-1-1/offline_fish_keys ${HOME}/.mina-network/mina-local-network-2-1-1/offline_whale_keys ${HOME}/.mina-network/mina-local-network-2-1-1/online_fish_keys ${HOME}/.mina-network/mina-local-network-2-1-1/online_whale_keys ${HOME}/.mina-network/mina-local-network-2-1-1/service-keys ${HOME}/.mina-network/mina-local-network-2-1-1/snark_coordinator_keys ${HOME}/.mina-network/mina-local-network-2-1-1/zkapp_keys ${HOME}/.mina-network/mina-local-network-2-1-1/nodes/fish_0/wallets/store/ ${HOME}/.mina-network/mina-local-network-2-1-1/nodes/node_0/wallets/store/ ${HOME}/.mina-network/mina-local-network-2-1-1/nodes/seed/wallets/store/ ${HOME}/.mina-network/mina-local-network-2-1-1/nodes/whale_0/wallets/store/ ${HOME}/.mina-network/mina-local-network-2-1-1/nodes/whale_1/wallets/store/)
 
 wait-for-service() {
   echo ""
@@ -37,13 +38,13 @@ prepare-rdbms() {
   echo ""
 }
 
-build-start-archive-node-api() {
+start-archive-node-api() {
   echo ""
-  echo "Building and starting the Archive-Node-API service..."
+  echo "Starting the Archive-Node-API service..."
+  echo "Archive-Node-API log file: ${ARCHIVE_NODE_API_LOG_FILE_PATH}"
   echo ""
   cd ${HOME}/Archive-Node-API/
-  rm -rf node_modules/ && npm install && npm run build
-  npm run start &
+  npm run start >${ARCHIVE_NODE_API_LOG_FILE_PATH} 2>&1 &
   cd ../
   wait-for-service ${ARCHIVE_NODE_API_PORT}
   echo ""
@@ -55,7 +56,7 @@ nginx-reload() {
   echo "Updating the Nginx configuration..."
   echo ""
 
-  cp -r $(pwd)/nginx.conf /etc/nginx/nginx.conf
+  cp -r ${HOME}/nginx.conf /etc/nginx/nginx.conf
   perl -i -p -e "s~###PROXY_PASS###~proxy_pass  http://localhost:${GRAPHQL_PORT}/graphql;~g" /etc/nginx/nginx.conf
   nginx -c /etc/nginx/nginx.conf
   nginx -s reload
@@ -68,7 +69,7 @@ done
 
 if [[ $RUN_ARCHIVE_NODE == "true" ]]; then
   prepare-rdbms
-  build-start-archive-node-api
+  start-archive-node-api
 fi
 
 if [ -f "${ACCOUNTS_MANAGER_EXE}" ]; then
@@ -80,9 +81,9 @@ if [ -f "${ACCOUNTS_MANAGER_EXE}" ]; then
 fi
 
 if [[ $NETWORK_TYPE == "single-node" ]]; then
-  mkdir -p $(pwd)/logs || true
-  ARCHIVE_LOG_FILE_PATH=$(pwd)/logs/archive-node-network.log
-  DAEMON_LOG_FILE_PATH=$(pwd)/logs/single-node-network.log
+  mkdir -p ${HOME}/logs || true
+  ARCHIVE_LOG_FILE_PATH=${HOME}/logs/archive-node-network.log
+  DAEMON_LOG_FILE_PATH=${HOME}/logs/single-node-network.log
   ARCHIVE_CLI_ARGS=""
 
   echo ""
@@ -102,7 +103,7 @@ if [[ $NETWORK_TYPE == "single-node" ]]; then
     echo "Starting the Archive Node..."
     echo "Mina Archive node log file: ${ARCHIVE_LOG_FILE_PATH}"
     echo ""
-    $(pwd)/archive.exe run \
+    ${HOME}/archive.exe run \
       --config-file ${GENESIS_LEDGER_CONFIG_FILE} \
       --log-level Trace \
       --postgres-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${RDBMS_PORT}/${POSTGRES_DB} \
@@ -115,7 +116,7 @@ if [[ $NETWORK_TYPE == "single-node" ]]; then
   echo ""
   MINA_PRIVKEY_PASS="naughty blue worm" \
     MINA_LIBP2P_PASS="naughty blue worm" \
-    $(pwd)/mina.exe daemon \
+    ${HOME}/mina.exe daemon \
     --config-file ${GENESIS_LEDGER_CONFIG_FILE} \
     --config-directory ${LEDGER_FOLDER}/nodes/whale_0 \
     --libp2p-keypair ${LEDGER_FOLDER}/libp2p_keys/node_0 \
@@ -142,7 +143,7 @@ elif [[ $NETWORK_TYPE == "multi-node" ]]; then
     ARCHIVE_CLI_ARGS=" --archive --pg-user ${POSTGRES_USER} --pg-passwd ${POSTGRES_PASSWORD} --pg-db ${POSTGRES_DB}"
   fi
 
-  bash $(pwd)/mina-local-network.sh -sp 3100 -w 2 -f 1 -n 1 -u -ll Trace -fll Trace -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS}
+  bash ${HOME}/mina-local-network.sh -sp 3100 -w 2 -f 1 -n 1 -u -ll Trace -fll Trace -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS}
 else
   echo ""
   echo "Unknown network type: $NETWORK_TYPE"

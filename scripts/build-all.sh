@@ -76,6 +76,13 @@ git stash && git pull && git reset && git clean -f && git checkout . && git subm
 ./gradlew nativeCompile
 cd ${CURRENT_DIR}
 
+echo ""
+echo "[INFO] Building Archive-Node-API at path: ${ARCHIVE_NODE_API_REPO_DIR}"
+echo ""
+cd ${ARCHIVE_NODE_API_REPO_DIR}
+rm -rf node_modules/ && npm install && npm run build
+cd ${CURRENT_DIR}
+
 for TARGET_BRANCH in "${TARGET_BRANCHES[@]}"; do
   echo ""
   echo "[INFO] Building Mina at branch: '${TARGET_BRANCH}' and then the corresponding Docker Image"
