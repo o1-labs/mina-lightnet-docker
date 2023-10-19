@@ -23,7 +23,7 @@ COPY zkapp_tables.sql /root/
 COPY mina.exe /root/
 COPY archive.exe /root/
 COPY libp2p_helper /root/
-COPY Archive-Node-API /root/
+COPY Archive-Node-API/ /root/Archive-Node-API/
 # COPY accounts-manager /root/
 
 WORKDIR /root
