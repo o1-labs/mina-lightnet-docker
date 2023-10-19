@@ -57,7 +57,7 @@ docker run -it --env NETWORK_TYPE="single-node" --env PROOF_LEVEL="none" -p 3085
 - 720 slots per epoch
 - New blocks are produced every ~20-40 seconds
 - 5-8 transactions per block
-- ~815-850 MB of RAM consumption after initial spike and if stays alive during less than 2 hours ~= 1/2 epoch
+- ~850-970 MB of RAM consumption after initial spike and if stays alive during less than 2 hours ~= 1/2 epoch
 - The startup and sync time is ~1-2 minutes
 
 #### Single Node logs
