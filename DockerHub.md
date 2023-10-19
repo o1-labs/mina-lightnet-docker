@@ -27,6 +27,8 @@ Connection to the container's PostgreSQL can be used for other needs, including 
   postgresql://postgres:postgres@localhost:5432/archive
   ```
 
+If no Mina Archive Node will run inside the container, then [Archive-Node-API](https://github.com/o1-labs/Archive-Node-API) won't be available.
+
 ## Mina accounts manager
 
 The Mina accounts manager helper tool, provided with the Docker images, automates how users retrieve account information.  
@@ -46,7 +48,7 @@ Before the Mina network can be used in your job or jobs steps, it must reach the
 ### Single Node
 
 ```shell
-docker run -it --env NETWORK_TYPE="single-node" --env PROOF_LEVEL="none" -p 3085:3085 -p 5432:5432 -p 8080:8080 -p 8181:8181 o1labs/mina-local-network:rampup-latest-lightnet
+docker run -it --env NETWORK_TYPE="single-node" --env PROOF_LEVEL="none" -p 3085:3085 -p 5432:5432 -p 8080:8080 -p 8181:8181 -p 8282:8282 o1labs/mina-local-network:rampup-latest-lightnet
 ```
 
 #### Single Node network properties
@@ -58,7 +60,7 @@ docker run -it --env NETWORK_TYPE="single-node" --env PROOF_LEVEL="none" -p 3085
 - ~815-850 MB of RAM consumption after initial spike and if stays alive during less than 2 hours ~= 1/2 epoch
 - The startup and sync time is ~1-2 minutes
 
-#### Single Node Logs
+#### Single Node logs
 
 By default, logs produced by the Mina processes will be redirected into the files located by the following path pattern inside the container:
 
@@ -74,7 +76,7 @@ docker run ... --mount "type=bind,source=/tmp,dst=/root/logs" ...
 
 It is especially useful if you want to keep the logs after the container is stopped and deleted. For example when used in CI/CD pipelines.
 
-[GitHub Actions](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idservices) example:
+#### [GitHub Actions](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idservices) example
 
 ```yaml
 ...
@@ -110,10 +112,18 @@ jobs:
           retention-days: 5
 ```
 
+#### Single Node ports reference
+
+- **3085**: Mina Daemon GraphQL endpoint
+- **5432**: PostgreSQL RDBMS
+- **8080**: NGINX reverse proxy against Mina Daemon GraphQL endpoint
+- **8181**: Mina Accounts Manager
+- **8282**: Archive-Node-API
+
 ### Multi-Node
 
 ```shell
-docker run -it --env NETWORK_TYPE="multi-node" --env PROOF_LEVEL="none" -p 4001:4001 -p 4006:4006 -p 5001:5001 -p 5432:5432 -p 6001:6001 -p 8080:8080 -p 8181:8181 o1labs/mina-local-network:rampup-latest-lightnet
+docker run -it --env NETWORK_TYPE="multi-node" --env PROOF_LEVEL="none" -p 4001:4001 -p 4006:4006 -p 5001:5001 -p 5432:5432 -p 6001:6001 -p 8080:8080 -p 8181:8181 -p 8282:8282 o1labs/mina-local-network:rampup-latest-lightnet
 ```
 
 #### Multi-Node network properties
@@ -125,13 +135,24 @@ docker run -it --env NETWORK_TYPE="multi-node" --env PROOF_LEVEL="none" -p 4001:
 - ~5.5-6+ GB of RAM consumption
 - The startup and sync time is ~4-6 minutes
 
-#### Multi-Node Logs
+#### Multi-Node logs
 
 By default, logs produced by the Mina processes will be redirected into the files located by the following path pattern inside the container:
 
 ```shell
 /root/mina-local-network-2-1-1/nodes/**/logs/*.log
 ```
+
+#### Multi-Node ports reference
+
+- **4001**: Whale #1 Mina Daemon GraphQL endpoint
+- **4006**: Whale #2 Mina Daemon GraphQL endpoint
+- **5001**: Fish #1 Mina Daemon GraphQL endpoint
+- **5432**: PostgreSQL RDBMS
+- **6001**: Follower #1 Mina Daemon GraphQL endpoint
+- **8080**: NGINX reverse proxy against Whale #2 Mina Daemon GraphQL endpoint
+- **8181**: Mina Accounts Manager
+- **8282**: Archive-Node-API
 
 ## Image tags anatomy
 

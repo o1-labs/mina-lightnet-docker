@@ -3,7 +3,7 @@
 # Exit script when commands fail
 set -e
 
-if [[ $# -lt 4 ]]; then
+if [[ $# -lt 5 ]]; then
   echo "Usage: $0 <Mina repository root path> <Proof level> <Docker Hub user name> <Docker Hub image tag> [<Accounts-Manager binary path>]"
   exit 1
 fi
@@ -12,14 +12,16 @@ START=$(date +%s)
 CURRENT_DIR="$(pwd)"
 
 MINA_REPO_DIR=${1}
-PROOF_LEVEL=${2}
-DOCKER_HUB_USER_NAME=${3}
-DOCKER_HUB_IMAGE_TAG=${4}
+ARCHIVE_NODE_API_REPO_DIR=${2}
+PROOF_LEVEL=${3}
+DOCKER_HUB_USER_NAME=${4}
+DOCKER_HUB_IMAGE_TAG=${5}
 TMP_FOLDER=$(mktemp -d)
 KEYS_LOCATION_TARGETS=(${TMP_FOLDER}/mina-local-network-2-1-1/nodes/fish_0/wallets/store/ ${TMP_FOLDER}/mina-local-network-2-1-1/nodes/node_0/wallets/store/ ${TMP_FOLDER}/mina-local-network-2-1-1/nodes/seed/wallets/store/ ${TMP_FOLDER}/mina-local-network-2-1-1/nodes/snark_coordinator/wallets/store/ ${TMP_FOLDER}/mina-local-network-2-1-1/nodes/snark_workers/worker_0/wallets/store/ ${TMP_FOLDER}/mina-local-network-2-1-1/nodes/whale_0/wallets/store/ ${TMP_FOLDER}/mina-local-network-2-1-1/nodes/whale_1/wallets/store/)
 
 echo ""
 echo "[INFO] Mina repository root: ${MINA_REPO_DIR}"
+echo "[INFO] Archive-Node-API repository root: ${ARCHIVE_NODE_API_REPO_DIR}"
 echo "[INFO] Proof level: ${PROOF_LEVEL}"
 echo "[INFO] Docker Hub user name: ${DOCKER_HUB_USER_NAME}"
 echo "[INFO] Docker Hub image tag: ${DOCKER_HUB_IMAGE_TAG}"
@@ -43,8 +45,10 @@ cp -r ${MINA_REPO_DIR}/src/app/libp2p_helper/result/bin/libp2p_helper ${TMP_FOLD
 cp -r ${MINA_REPO_DIR}/_build/default/src/app/archive/archive.exe ${TMP_FOLDER}/
 # cp -r ${MINA_REPO_DIR}/_build/default/src/app/logproc/logproc.exe ${TMP_FOLDER}/
 # cp -r ${MINA_REPO_DIR}/_build/default/src/app/zkapp_test_transaction/zkapp_test_transaction.exe ${TMP_FOLDER}/
-if [[ $# -eq 5 ]]; then
-  cp -r ${5} ${TMP_FOLDER}/
+cp -r ${ARCHIVE_NODE_API_REPO_DIR} ${TMP_FOLDER}
+cp -r ./configuration/archive-node-api.env ${TMP_FOLDER}/Archive-Node-API/.env
+if [[ $# -eq 6 ]]; then
+  cp -r ${6} ${TMP_FOLDER}/
   perl -i -p -e 's~# COPY accounts-manager /root/~COPY accounts-manager /root/~g' ${TMP_FOLDER}/Dockerfile
   perl -i -p -e 's~# RUN chmod \+x accounts-manager~RUN chmod \+x accounts-manager~g' ${TMP_FOLDER}/Dockerfile
   perl -i -p -e 's~# EXPOSE 8181~EXPOSE 8181~g' ${TMP_FOLDER}/Dockerfile
