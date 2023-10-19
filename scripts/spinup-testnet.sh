@@ -8,6 +8,7 @@ trap "killall background" EXIT
 
 ARCHIVE_NODE_PORT=3086
 RDBMS_PORT=5432
+ARCHIVE_NODE_API_PORT=8282
 LEDGER_FOLDER="$(pwd)/.mina-network/mina-local-network-2-1-1"
 GENESIS_LEDGER_CONFIG_FILE=${LEDGER_FOLDER}/daemon.json
 ACCOUNTS_MANAGER_EXE="$(pwd)/accounts-manager"
@@ -36,6 +37,18 @@ prepare-rdbms() {
   echo ""
 }
 
+build-start-archive-node-api() {
+  echo ""
+  echo "Building and starting the Archive-Node-API service..."
+  echo ""
+  cd ${HOME}/Archive-Node-API/
+  rm -rf node_modules/ && npm install && npm run build
+  npm run start &
+  cd ../
+  wait-for-service ${ARCHIVE_NODE_API_PORT}
+  echo ""
+}
+
 nginx-reload() {
   GRAPHQL_PORT=${1}
 
@@ -55,6 +68,7 @@ done
 
 if [[ $RUN_ARCHIVE_NODE == "true" ]]; then
   prepare-rdbms
+  build-start-archive-node-api
 fi
 
 if [ -f "${ACCOUNTS_MANAGER_EXE}" ]; then

@@ -2,6 +2,17 @@ FROM postgres:14-bookworm
 
 RUN apt update && apt install -y --no-install-recommends python3 python3-pip jq wget curl psmisc libpq-dev libjemalloc-dev libffi-dev nginx netcat-traditional && apt clean && rm -rf /var/lib/apt/lists/*
 
+ENV NODE_VERSION=20.8.1
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+ENV NVM_DIR=/root/.nvm
+RUN . "$NVM_DIR/nvm.sh" && nvm install ${NODE_VERSION}
+RUN . "$NVM_DIR/nvm.sh" && nvm use v${NODE_VERSION}
+RUN . "$NVM_DIR/nvm.sh" && nvm alias default v${NODE_VERSION}
+RUN . "$NVM_DIR/nvm.sh" && npm install -g npm
+ENV PATH="/root/.nvm/versions/node/v${NODE_VERSION}/bin/:${PATH}"
+RUN node --version
+RUN npm --version
+
 COPY mina-local-network-2-1-1/ /root/.mina-network/mina-local-network-2-1-1/
 COPY nginx.conf /root/
 COPY spinup-testnet.sh /root/
@@ -12,6 +23,7 @@ COPY zkapp_tables.sql /root/
 COPY mina.exe /root/
 COPY archive.exe /root/
 COPY libp2p_helper /root/
+COPY Archive-Node-API /root/
 # COPY accounts-manager /root/
 
 WORKDIR /root
@@ -31,6 +43,7 @@ EXPOSE 5432
 EXPOSE 6001
 EXPOSE 8080
 # EXPOSE 8181
+EXPOSE 8282
 
 ENV RUN_ARCHIVE_NODE="true"
 ENV NETWORK_TYPE="single-node"

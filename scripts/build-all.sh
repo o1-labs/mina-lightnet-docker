@@ -3,8 +3,8 @@
 # Exit script when commands fail
 # set -e
 
-if [[ $# -lt 5 ]]; then
-  echo "Usage: $0 <Mina repository root path> <Docker image building scripts repository root path> <Mina-Accounts-Manager repository root path> <Docker Hub user name> <Target branches>"
+if [[ $# -lt 6 ]]; then
+  echo "Usage: $0 <Mina repository root path> <Archive-Node-API repository root path> <Docker image building scripts repository root path> <Mina-Accounts-Manager repository root path> <Docker Hub user name> <Target branches>"
   exit 1
 fi
 
@@ -14,10 +14,11 @@ START=$(date +%s)
 CURRENT_DIR="$(pwd)"
 
 MINA_REPO_DIR=${1}
-DOCKER_IMAGE_BUILDING_SCRIPTS_REPO_DIR=${2}
-MINA_ACCOUNTS_MANAGER_REPO_DIR=${3}
-DOCKER_HUB_USER_NAME=${4}
-TARGET_BRANCHES=(${5})
+ARCHIVE_NODE_API_REPO_DIR=${2}
+DOCKER_IMAGE_BUILDING_SCRIPTS_REPO_DIR=${3}
+MINA_ACCOUNTS_MANAGER_REPO_DIR=${4}
+DOCKER_HUB_USER_NAME=${5}
+TARGET_BRANCHES=(${6})
 
 cd ${MINA_REPO_DIR}
 cd ../
@@ -95,14 +96,14 @@ for TARGET_BRANCH in "${TARGET_BRANCHES[@]}"; do
   echo ""
   buildMina "devnet" false
   cd ${DOCKER_IMAGE_BUILDING_SCRIPTS_REPO_DIR}
-  ./scripts/build-image.sh ${HOME}/projects/o1labs/mina full ${DOCKER_HUB_USER_NAME} ${BRANCH_NAME}-latest-devnet ${MINA_ACCOUNTS_MANAGER_REPO_DIR}/build/native/nativeCompile/accounts-manager
+  ./scripts/build-image.sh ${MINA_REPO_DIR} ${ARCHIVE_NODE_API_REPO_DIR} full ${DOCKER_HUB_USER_NAME} ${BRANCH_NAME}-latest-devnet ${MINA_ACCOUNTS_MANAGER_REPO_DIR}/build/native/nativeCompile/accounts-manager
   gitPullAll && gitPullAll
   echo ""
   echo "[INFO] For Lightnet dune profile..."
   echo ""
   buildMina "lightnet" false
   cd ${DOCKER_IMAGE_BUILDING_SCRIPTS_REPO_DIR}
-  ./scripts/build-image.sh ${HOME}/projects/o1labs/mina none ${DOCKER_HUB_USER_NAME} ${BRANCH_NAME}-latest-lightnet ${MINA_ACCOUNTS_MANAGER_REPO_DIR}/build/native/nativeCompile/accounts-manager
+  ./scripts/build-image.sh ${MINA_REPO_DIR} ${ARCHIVE_NODE_API_REPO_DIR} none ${DOCKER_HUB_USER_NAME} ${BRANCH_NAME}-latest-lightnet ${MINA_ACCOUNTS_MANAGER_REPO_DIR}/build/native/nativeCompile/accounts-manager
 done
 
 END=$(date +%s)
