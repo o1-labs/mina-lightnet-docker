@@ -48,7 +48,15 @@ Before the Mina network can be used in your job or jobs steps, it must reach the
 ### Single Node
 
 ```shell
-docker run -it --env NETWORK_TYPE="single-node" --env PROOF_LEVEL="none" -p 3085:3085 -p 5432:5432 -p 8080:8080 -p 8181:8181 -p 8282:8282 o1labs/mina-local-network:rampup-latest-lightnet
+docker run --rm -it \
+  --env NETWORK_TYPE="single-node" \
+  --env PROOF_LEVEL="none" \
+  -p 3085:3085 \
+  -p 5432:5432 \
+  -p 8080:8080 \
+  -p 8181:8181 \
+  -p 8282:8282 \
+  o1labs/mina-local-network:rampup-latest-lightnet
 ```
 
 #### Single Node network properties
@@ -158,7 +166,18 @@ jobs:
 ### Multi-Node
 
 ```shell
-docker run -it --env NETWORK_TYPE="multi-node" --env PROOF_LEVEL="none" -p 4001:4001 -p 4006:4006 -p 5001:5001 -p 5432:5432 -p 6001:6001 -p 8080:8080 -p 8181:8181 -p 8282:8282 o1labs/mina-local-network:rampup-latest-lightnet
+docker run --rm -it \
+ --env NETWORK_TYPE="multi-node" \
+ --env PROOF_LEVEL="none" \
+ -p 4001:4001 \
+ -p 4006:4006 \
+ -p 5001:5001 \
+ -p 5432:5432 \
+ -p 6001:6001 \
+ -p 8080:8080 \
+ -p 8181:8181 \
+ -p 8282:8282 \
+ o1labs/mina-local-network:rampup-latest-lightnet
 ```
 
 #### Multi-Node network properties
