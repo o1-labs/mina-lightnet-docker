@@ -112,7 +112,42 @@ jobs:
           retention-days: 5
 ```
 
-#### Single Node ports reference
+#### Single Node services topology
+
+```shell
++-------------------+   +-------------------+
+|                   |   |                   |
+|  Mina             |   |  NGINX            |
+|  multi-purpose    |   |  Reverse Proxy    |
+|  Daemon           |   |                   |
+|                   |   |                   |
++-------------------+   +-------------------+
+
++-------------------+   +-------------------+
+|                   |   |                   |
+|  PostgreSQL       |   |  Mina Accounts    |
+|  RDBMS (optional) |   |  Manager          |
+|                   |   |                   |
++-------------------+   +-------------------+
+
++-------------------+   +-------------------+
+|                   |   |                   |
+|  Archive-Node-API |   |  Mina Archive     |
+|  (optional)       |   |  Node (optional)  |
+|                   |   |                   |
++-------------------+   +-------------------+
+```
+
+**Where**:
+
+- The Mina multi-purpose Daemon is the core of Mina blockchain network. This single Mina Daemon process acts as the block producer, snark worker and as the seed node at the same time.
+- The NGINX reverse proxy is used to provide the Mina GraphQL endpoint with proper CORS management.
+- The PostgreSQL is **optional** RDBMS process that is used to store the blockchain data for Mina Archive process.
+- The [Mina Accounts Manager](https://github.com/shimkiv/mina-accounts-manager) is a helper tool that automates how users retrieve account information.
+- The [Archive-Node-API](https://github.com/o1-labs/Archive-Node-API) is **optional** helper tool that provides a REST API to the PostgreSQL RDBMS.
+- Mina Archive Node **optional** Mina Archive process that Mina Daemon talks to in order to preserve blockchain data.
+
+#### Single Node exposed ports reference
 
 - **3085**: Mina Daemon GraphQL endpoint
 - **5432**: PostgreSQL RDBMS
@@ -144,13 +179,63 @@ By default, logs produced by different processes will be redirected into the fil
 /root/mina-local-network-2-1-1/nodes/**/logs/*.log
 ```
 
-#### Multi-Node ports reference
+#### Multi-Node services topology
+
+```shell
++-------------------+   +-------------------+
+|                   |   |                   |
+|  NGINX            |   |  Mina             |
+|  Reverse Proxy    |   |  Seed node 1      |
+|                   |   |                   |
++-------------------+   +-------------------+
+
++-------------------+   +-------------------+   +-------------------+
+|                   |   |                   |   |                   |
+|  Mina             |   |  Mina             |   |  Mina             |
+|  Block producer   |   |  Block producer   |   |  Block producer   |
+|  Whale 1          |   |  Whale 2          |   |  Fish 1           |
+|                   |   |                   |   |                   |
++-------------------+   +-------------------+   +-------------------+
+
++-------------------+   +--------------------+   +-------------------+
+|                   |   |                    |   |                   |
+|  Mina             |   |  Mina              |   |  Mina             |
+|  Non BP           |   |  Snark coordinator |   |  Snark worker     |
+|  Node 1           |   |                    |   |                   |
+|                   |   |                    |   |                   |
++-------------------+   +--------------------+   +-------------------+
+
++-------------------+   +-------------------+
+|                   |   |                   |
+|  PostgreSQL       |   |  Mina Accounts    |
+|  RDBMS (optional) |   |  Manager          |
+|                   |   |                   |
++-------------------+   +-------------------+
+
++-------------------+   +-------------------+
+|                   |   |                   |
+|  Archive-Node-API |   |  Mina Archive     |
+|  (optional)       |   |  Node (optional)  |
+|                   |   |                   |
++-------------------+   +-------------------+
+```
+
+**Where**:
+
+- The Mina nodes are the core of Mina blockchain network. Independent processes that represent seed nodes, block producers, snark coordinators, snark workers and non block-producing nodes.
+- The NGINX reverse proxy is used to provide the Mina GraphQL endpoint with proper CORS management.
+- The PostgreSQL is **optional** RDBMS process that is used to store the blockchain data for Mina Archive process.
+- The [Mina Accounts Manager](https://github.com/shimkiv/mina-accounts-manager) is a helper tool that automates how users retrieve account information.
+- The [Archive-Node-API](https://github.com/o1-labs/Archive-Node-API) is **optional** helper tool that provides a REST API to the PostgreSQL RDBMS.
+- Mina Archive Node **optional** Mina Archive process that Mina Daemons talk to in order to preserve blockchain data.
+
+#### Multi-Node exposed ports reference
 
 - **4001**: Whale #1 Mina Daemon GraphQL endpoint
 - **4006**: Whale #2 Mina Daemon GraphQL endpoint
 - **5001**: Fish #1 Mina Daemon GraphQL endpoint
 - **5432**: PostgreSQL RDBMS
-- **6001**: Follower #1 Mina Daemon GraphQL endpoint
+- **6001**: Non block-producing node #1 Mina Daemon GraphQL endpoint
 - **8080**: NGINX reverse proxy against Whale #2 Mina Daemon GraphQL endpoint
 - **8181**: Mina Accounts Manager
 - **8282**: Archive-Node-API
