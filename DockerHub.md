@@ -48,7 +48,7 @@ Before the Mina network can be used in your job or jobs steps, it must reach the
 ### Single Node
 
 ```shell
-docker run --rm -it \
+docker run --rm --pull=always -it \
   --env NETWORK_TYPE="single-node" \
   --env PROOF_LEVEL="none" \
   -p 3085:3085 \
@@ -166,7 +166,7 @@ jobs:
 ### Multi-Node
 
 ```shell
-docker run --rm -it \
+docker run --rm --pull=always -it \
  --env NETWORK_TYPE="multi-node" \
  --env PROOF_LEVEL="none" \
  -p 4001:4001 \
