@@ -31,7 +31,7 @@ jobs:
           host: ${{ secrets.MINA_BUILD_SYSTEM_IP }}
           username: ${{ secrets.MINA_BUILD_SYSTEM_SSH_USER_NAME }}
           key: ${{ secrets.MINA_BUILD_SYSTEM_SSH_PRIVATE_KEY }}
-          script: bash -ilc "${HOME}/projects/o1labs/mina-lightnet-docker/scripts/build-all.sh ${HOME}/projects/o1labs/mina ${HOME}/projects/o1labs/Archive-Node-API ${HOME}/projects/o1labs/mina-lightnet-docker ${HOME}/projects/p42/mina-accounts-manager o1labs \"develop berkeley rampup\""
+          script: bash -ilc "${HOME}/projects/o1labs/mina-lightnet-docker/scripts/build-all.sh ${HOME}/projects/o1labs/mina ${HOME}/projects/o1labs/Archive-Node-API ${HOME}/projects/o1labs/mina-lightnet-docker ${HOME}/projects/p42/mina-accounts-manager o1labs \"develop berkeley o1js-main\""
           command_timeout: 170m
       - name: Sleep for 15 seconds
         run: sleep 15s

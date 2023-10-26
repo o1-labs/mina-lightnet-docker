@@ -88,8 +88,8 @@ for TARGET_BRANCH in "${TARGET_BRANCHES[@]}"; do
   echo "[INFO] Building Mina at branch: '${TARGET_BRANCH}' and then the corresponding Docker Image"
   echo ""
   BRANCH_NAME=${TARGET_BRANCH}
-  if [[ $TARGET_BRANCH == "rampup" ]]; then
-    BRANCH_NAME="o1js-main"
+  if [[ $TARGET_BRANCH == "o1js-main" ]]; then
+    BRANCH_NAME="rampup"
   fi
 
   gitPullAll && gitPullAll
