@@ -83,7 +83,7 @@ if [ -f "${ACCOUNTS_MANAGER_EXE}" ]; then
 fi
 
 if [[ $NETWORK_TYPE == "single-node" ]]; then
-  ARCHIVE_LOG_FILE_PATH=${HOME}/logs/archive-node-network.log
+  ARCHIVE_LOG_FILE_PATH=${HOME}/logs/archive-node.log
   DAEMON_LOG_FILE_PATH=${HOME}/logs/single-node-network.log
   ARCHIVE_CLI_ARGS=""
 
