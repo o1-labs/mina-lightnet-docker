@@ -79,7 +79,7 @@ if [ -f "${ACCOUNTS_MANAGER_EXE}" ]; then
   echo "Starting the Accounts-Manager service..."
   echo ""
 
-  ${ACCOUNTS_MANAGER_EXE} ${GENESIS_LEDGER_CONFIG_FILE} 8080 &
+  ${ACCOUNTS_MANAGER_EXE} ${GENESIS_LEDGER_CONFIG_FILE} 8181 8080 "naughty blue worm" &
 fi
 
 if [[ $NETWORK_TYPE == "single-node" ]]; then

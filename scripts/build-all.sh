@@ -16,9 +16,10 @@ CURRENT_DIR="$(pwd)"
 MINA_REPO_DIR=${1}
 ARCHIVE_NODE_API_REPO_DIR=${2}
 DOCKER_IMAGE_BUILDING_SCRIPTS_REPO_DIR=${3}
-MINA_ACCOUNTS_MANAGER_REPO_DIR=${4}
+MINA_ACCOUNTS_MANAGER_VERSION=${4}
 DOCKER_HUB_USER_NAME=${5}
 TARGET_BRANCHES=(${6})
+MINA_ACCOUNTS_MANAGER_LINK=https://github.com/shimkiv/mina-accounts-manager/releases/download/${MINA_ACCOUNTS_MANAGER_VERSION}/accounts-manager-ubuntu-latest
 
 cd ${MINA_REPO_DIR}
 cd ../
@@ -69,12 +70,10 @@ buildMina() {
 }
 
 echo ""
-echo "[INFO] Building Mina Accounts Manager at path: ${MINA_ACCOUNTS_MANAGER_REPO_DIR}"
+echo "[INFO] Downloading Mina Accounts Manager from: ${MINA_ACCOUNTS_MANAGER_LINK}"
 echo ""
-cd ${MINA_ACCOUNTS_MANAGER_REPO_DIR}
-git stash && git pull && git reset && git clean -f && git checkout . && git submodule sync && git submodule update --recursive --init
-./gradlew nativeCompile
 cd ${CURRENT_DIR}
+wget -O ${HOME}/accounts-manager ${MINA_ACCOUNTS_MANAGER_LINK}
 
 echo ""
 echo "[INFO] Building Archive-Node-API at path: ${ARCHIVE_NODE_API_REPO_DIR}"
@@ -103,14 +102,14 @@ for TARGET_BRANCH in "${TARGET_BRANCHES[@]}"; do
   echo ""
   buildMina "devnet" false
   cd ${DOCKER_IMAGE_BUILDING_SCRIPTS_REPO_DIR}
-  ./scripts/build-image.sh ${MINA_REPO_DIR} ${ARCHIVE_NODE_API_REPO_DIR} full ${DOCKER_HUB_USER_NAME} ${BRANCH_NAME}-latest-devnet ${MINA_ACCOUNTS_MANAGER_REPO_DIR}/build/native/nativeCompile/accounts-manager
+  ./scripts/build-image.sh ${MINA_REPO_DIR} ${ARCHIVE_NODE_API_REPO_DIR} full ${DOCKER_HUB_USER_NAME} ${BRANCH_NAME}-latest-devnet ${HOME}/accounts-manager
   gitPullAll && gitPullAll
   echo ""
   echo "[INFO] For Lightnet dune profile..."
   echo ""
   buildMina "lightnet" false
   cd ${DOCKER_IMAGE_BUILDING_SCRIPTS_REPO_DIR}
-  ./scripts/build-image.sh ${MINA_REPO_DIR} ${ARCHIVE_NODE_API_REPO_DIR} none ${DOCKER_HUB_USER_NAME} ${BRANCH_NAME}-latest-lightnet ${MINA_ACCOUNTS_MANAGER_REPO_DIR}/build/native/nativeCompile/accounts-manager
+  ./scripts/build-image.sh ${MINA_REPO_DIR} ${ARCHIVE_NODE_API_REPO_DIR} none ${DOCKER_HUB_USER_NAME} ${BRANCH_NAME}-latest-lightnet ${HOME}/accounts-manager
 done
 
 END=$(date +%s)

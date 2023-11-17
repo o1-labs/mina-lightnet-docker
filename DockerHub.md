@@ -276,7 +276,7 @@ The Mina accounts manager that runs inside the container provides the following 
 
 ```shell
 -----------------------------
-.:: Mina Accounts Manager ::.
+.:: Mina Accounts-Manager ::.
 -----------------------------
 
 Application initialized and is running at: http://localhost:8181
@@ -284,15 +284,31 @@ Available endpoints:
 
    HTTP GET:
    http://localhost:8181/acquire-account
-   Supported Query params: isRegularAccount=<boolean>, default: true
+   Supported Query params:
+                           isRegularAccount=<boolean>, default: true
                            Useful if you need to get non-zkApp account.
-   Returns Account JSON:
+
+                           unlockAccount=<boolean>, default: false
+                           Useful if you need to get unlocked account.
+   Returns JSON account key-pair:
    { pk:"", sk:"" }
 
    HTTP PUT:
    http://localhost:8181/release-account
-   Accepts Account JSON as request payload:
+   Accepts JSON account key-pair as request payload:
    { pk:"", sk:"" }
+   Returns JSON status message
+
+   HTTP GET:
+   http://localhost:8181/list-acquired-accounts
+   Returns JSON list of acquired accounts key-pairs:
+   [ { pk:"", sk:"" }, ... ]
+
+   HTTP PUT:
+   http://localhost:8181/unlock-account
+   Accepts JSON account key-pair as request payload:
+   { pk:"", sk:"" }
+   Returns JSON status message
 
 Operating with:
    Mina Genesis ledger:   /root/.mina-network/mina-local-network-2-1-1/daemon.json
