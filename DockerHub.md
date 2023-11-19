@@ -195,7 +195,7 @@ By default, logs produced by different processes will be redirected into the fil
 
 ```shell
 /root/logs/*.log
-/root/mina-local-network-2-1-1/nodes/**/logs/*.log
+/root/.mina-network/mina-local-network-2-1-1/**/logs/*.log
 ```
 
 #### Multi-Node services topology
