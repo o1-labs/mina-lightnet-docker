@@ -84,12 +84,12 @@ cd ${CURRENT_DIR}
 
 for TARGET_BRANCH in "${TARGET_BRANCHES[@]}"; do
   echo ""
-  echo "[INFO] Building Mina at branch: '${TARGET_BRANCH}' and then the corresponding Docker Image"
+  echo "[INFO] Building Mina at branch: '${TARGET_BRANCH}' and then building the corresponding Docker Image"
   echo ""
   BRANCH_NAME=${TARGET_BRANCH}
-  if [[ $TARGET_BRANCH == "o1js-main" ]]; then
-    BRANCH_NAME="rampup"
-  fi
+  # if [[ $TARGET_BRANCH == "o1js-main" ]]; then
+  #   BRANCH_NAME="rampup"
+  # fi
 
   gitPullAll && gitPullAll
   git checkout ${TARGET_BRANCH}
