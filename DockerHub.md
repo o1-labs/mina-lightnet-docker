@@ -4,7 +4,7 @@ Spin up a lightweight Mina network within the single container.
 
 These Docker images provide a simple and efficient way to deploy and run lightweight Mina blockchain networks for testing purposes. It is an implementation of the [Dockerization of Mina local networks](https://github.com/o1-labs/rfcs/blob/main/0004-dockerised-local-network.md) RFC.
 
-Each Docker image is packaged with the genesis ledger configuration with more than 1000 prefunded accounts. Each account has a balance of 155 MINA.
+Each Docker image is packaged with the genesis ledger configuration with more than 1000 prefunded accounts. Each account has a balance of 1550 MINA.
 
 ## Specifications
 
