@@ -61,6 +61,7 @@ buildMina() {
   sudo make clean
   export MINA_COMMIT_SHA1=$(git rev-parse HEAD)
   export DUNE_PROFILE="${1}"
+  export RUST_TARGET_FEATURE_OPTIMISATIONS=n
 
   make libp2p_helper
   ${DUNE_BUILD_COMMAND} \
