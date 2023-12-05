@@ -19,7 +19,7 @@ DOCKER_IMAGE_BUILDING_SCRIPTS_REPO_DIR=${3}
 MINA_ACCOUNTS_MANAGER_VERSION=${4}
 DOCKER_HUB_USER_NAME=${5}
 TARGET_BRANCHES=(${6})
-MINA_ACCOUNTS_MANAGER_LINK=https://github.com/shimkiv/mina-accounts-manager/releases/download/${MINA_ACCOUNTS_MANAGER_VERSION}/accounts-manager-amd64-latest
+MINA_ACCOUNTS_MANAGER_LINK=https://github.com/shimkiv/mina-accounts-manager/releases/download/${MINA_ACCOUNTS_MANAGER_VERSION}/accounts-manager-amd64
 
 cd ${MINA_REPO_DIR}
 cd ../
