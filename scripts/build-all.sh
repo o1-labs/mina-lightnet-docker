@@ -3,8 +3,8 @@
 # Exit script when commands fail
 # set -e
 
-if [[ $# -lt 6 ]]; then
-  echo "Usage: $0 <Mina repository root path> <Archive-Node-API repository root path> <Docker image building scripts repository root path> <Mina-Accounts-Manager repository root path> <Docker Hub user name> <Target branches>"
+if [[ $# -lt 7 ]]; then
+  echo "Usage: $0 <Architecture> <Mina repository root path> <Archive-Node-API repository root path> <Docker image building scripts repository root path> <Mina-Accounts-Manager repository root path> <Docker Hub user name> <Target branches>"
   exit 1
 fi
 
@@ -13,13 +13,14 @@ fi
 START=$(date +%s)
 CURRENT_DIR="$(pwd)"
 
-MINA_REPO_DIR=${1}
-ARCHIVE_NODE_API_REPO_DIR=${2}
-DOCKER_IMAGE_BUILDING_SCRIPTS_REPO_DIR=${3}
-MINA_ACCOUNTS_MANAGER_VERSION=${4}
-DOCKER_HUB_USER_NAME=${5}
-TARGET_BRANCHES=(${6})
-MINA_ACCOUNTS_MANAGER_LINK=https://github.com/shimkiv/mina-accounts-manager/releases/download/${MINA_ACCOUNTS_MANAGER_VERSION}/accounts-manager-amd64
+ARCH=${1}
+MINA_REPO_DIR=${2}
+ARCHIVE_NODE_API_REPO_DIR=${3}
+DOCKER_IMAGE_BUILDING_SCRIPTS_REPO_DIR=${4}
+MINA_ACCOUNTS_MANAGER_VERSION=${5}
+DOCKER_HUB_USER_NAME=${6}
+TARGET_BRANCHES=(${7})
+MINA_ACCOUNTS_MANAGER_LINK=https://github.com/shimkiv/mina-accounts-manager/releases/download/${MINA_ACCOUNTS_MANAGER_VERSION}/accounts-manager-${ARCH}
 
 cd ${MINA_REPO_DIR}
 cd ../
@@ -104,14 +105,14 @@ for TARGET_BRANCH in "${TARGET_BRANCHES[@]}"; do
   echo ""
   buildMina "devnet" false
   cd ${DOCKER_IMAGE_BUILDING_SCRIPTS_REPO_DIR}
-  ./scripts/build-image.sh ${MINA_REPO_DIR} ${ARCHIVE_NODE_API_REPO_DIR} full ${DOCKER_HUB_USER_NAME} ${BRANCH_NAME}-latest-devnet ${HOME}/accounts-manager
+  ./scripts/build-image.sh ${ARCH} ${MINA_REPO_DIR} ${ARCHIVE_NODE_API_REPO_DIR} full ${DOCKER_HUB_USER_NAME} ${BRANCH_NAME}-latest-devnet ${HOME}/accounts-manager
   gitPullAll && gitPullAll
   echo ""
   echo "[INFO] For Lightnet dune profile..."
   echo ""
   buildMina "lightnet" false
   cd ${DOCKER_IMAGE_BUILDING_SCRIPTS_REPO_DIR}
-  ./scripts/build-image.sh ${MINA_REPO_DIR} ${ARCHIVE_NODE_API_REPO_DIR} none ${DOCKER_HUB_USER_NAME} ${BRANCH_NAME}-latest-lightnet ${HOME}/accounts-manager
+  ./scripts/build-image.sh ${ARCH} ${MINA_REPO_DIR} ${ARCHIVE_NODE_API_REPO_DIR} none ${DOCKER_HUB_USER_NAME} ${BRANCH_NAME}-latest-lightnet ${HOME}/accounts-manager
 done
 
 END=$(date +%s)
