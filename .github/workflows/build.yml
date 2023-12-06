@@ -6,12 +6,12 @@ on:
 jobs:
   build-and-publish-amd64:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 300
     steps:
       - name: Install and cache Hetzner Cloud CLI
         uses: 3bit/setup-hcloud@v2
       - name: Create mina-build-system-amd64 cloud VM
-        run: hcloud server create --name mina-build-system-amd64 --datacenter fsn1-dc14 --primary-ipv4 35577977 --image 132107836 --type cpx31 --ssh-key app@localhost --start-after-create
+        run: hcloud server create --name mina-build-system-amd64 --datacenter fsn1-dc14 --primary-ipv4 35577977 --image 132107836 --type cpx41 --ssh-key app@localhost --start-after-create
         env:
           HCLOUD_TOKEN: ${{ secrets.HETZNER_API_TOKEN }}
       - name: Sleep for 120 seconds
@@ -52,12 +52,12 @@ jobs:
         shell: bash
   build-and-publish-arm64:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 300
     steps:
       - name: Install and cache Hetzner Cloud CLI
         uses: 3bit/setup-hcloud@v2
       - name: Create mina-build-system-arm64 cloud VM
-        run: hcloud server create --name mina-build-system-arm64 --datacenter fsn1-dc14 --primary-ipv4 45241536 --image 138928835 --type cax21 --ssh-key app@localhost --start-after-create
+        run: hcloud server create --name mina-build-system-arm64 --datacenter fsn1-dc14 --primary-ipv4 45241536 --image 138928835 --type cax31 --ssh-key app@localhost --start-after-create
         env:
           HCLOUD_TOKEN: ${{ secrets.HETZNER_API_TOKEN }}
       - name: Sleep for 120 seconds
@@ -99,12 +99,12 @@ jobs:
   create-and-publish-manifests:
     needs: [build-and-publish-amd64, build-and-publish-arm64]
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 60
     steps:
       - name: Install and cache Hetzner Cloud CLI
         uses: 3bit/setup-hcloud@v2
       - name: Create mina-build-system-arm64 cloud VM
-        run: hcloud server create --name mina-build-system-arm64 --datacenter fsn1-dc14 --primary-ipv4 45241536 --image 138928835 --type cax21 --ssh-key app@localhost --start-after-create
+        run: hcloud server create --name mina-build-system-arm64 --datacenter fsn1-dc14 --primary-ipv4 45241536 --image 138928835 --type cax31 --ssh-key app@localhost --start-after-create
         env:
           HCLOUD_TOKEN: ${{ secrets.HETZNER_API_TOKEN }}
       - name: Sleep for 120 seconds
