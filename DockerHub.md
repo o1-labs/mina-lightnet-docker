@@ -51,6 +51,7 @@ Before the Mina network can be used in your job or jobs steps, it must reach the
 docker run --rm --pull=always -it \
   --env NETWORK_TYPE="single-node" \
   --env PROOF_LEVEL="none" \
+  --env LOG_LEVEL="Info" \
   -p 3085:3085 \
   -p 5432:5432 \
   -p 8080:8080 \
@@ -97,6 +98,7 @@ jobs:
         env:
           NETWORK_TYPE: 'single-node'
           PROOF_LEVEL: 'none'
+          LOG_LEVEL: 'Info'
         ports:
           - 3085:3085
           - 5432:5432
@@ -169,6 +171,7 @@ jobs:
 docker run --rm --pull=always -it \
  --env NETWORK_TYPE="multi-node" \
  --env PROOF_LEVEL="none" \
+ --env LOG_LEVEL="Info" \
  -p 4001:4001 \
  -p 4006:4006 \
  -p 5001:5001 \

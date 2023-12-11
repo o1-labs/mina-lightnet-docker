@@ -106,7 +106,7 @@ if [[ $NETWORK_TYPE == "single-node" ]]; then
     echo ""
     ${HOME}/archive.exe run \
       --config-file ${GENESIS_LEDGER_CONFIG_FILE} \
-      --log-level Trace \
+      --log-level ${LOG_LEVEL} \
       --postgres-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${RDBMS_PORT}/${POSTGRES_DB} \
       --server-port ${ARCHIVE_NODE_PORT} >${ARCHIVE_LOG_FILE_PATH} 2>&1 &
     wait-for-service ${ARCHIVE_NODE_PORT}
@@ -127,8 +127,8 @@ if [[ $NETWORK_TYPE == "single-node" ]]; then
     --proof-level ${PROOF_LEVEL} \
     --insecure-rest-server \
     --log-json \
-    --log-level Trace \
-    --file-log-level Trace \
+    --log-level ${LOG_LEVEL} \
+    --file-log-level ${LOG_LEVEL} \
     --demo-mode \
     --seed ${ARCHIVE_CLI_ARGS} >${DAEMON_LOG_FILE_PATH} 2>&1
 elif [[ $NETWORK_TYPE == "multi-node" ]]; then
@@ -144,7 +144,7 @@ elif [[ $NETWORK_TYPE == "multi-node" ]]; then
     ARCHIVE_CLI_ARGS=" --archive --pg-user ${POSTGRES_USER} --pg-passwd ${POSTGRES_PASSWORD} --pg-db ${POSTGRES_DB}"
   fi
 
-  bash ${HOME}/mina-local-network.sh -sp 3100 -w 2 -f 1 -n 1 -u -ll Trace -fll Trace -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS}
+  bash ${HOME}/mina-local-network.sh -sp 3100 -w 2 -f 1 -n 1 -u -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS}
 else
   echo ""
   echo "Unknown network type: $NETWORK_TYPE"
