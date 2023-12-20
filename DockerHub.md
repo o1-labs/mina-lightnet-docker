@@ -6,6 +6,16 @@ These Docker images provide a simple and efficient way to deploy and run lightwe
 
 Each Docker image is packaged with the genesis ledger configuration with more than 1000 prefunded accounts. Each account has a balance of 1550 MINA.
 
+## Related projects
+
+- [Mina protocol](https://github.com/MinaProtocol/mina)
+- [o1js](https://github.com/o1-labs/o1js)
+- [zkapp-cli](https://github.com/o1-labs/zkapp-cli)
+- [Archive-Node-API](https://github.com/o1-labs/Archive-Node-API)
+- [Wait for Mina network GitHub action](https://github.com/o1-labs/wait-for-mina-network-action)
+- [Mina accounts manager](https://github.com/shimkiv/mina-accounts-manager)
+- [Mina lightweight explorer](https://github.com/o1-labs/mina-lightweight-explorer)
+
 ## Specifications
 
 - This Docker image exposes port `8080` that is served by the NGINX reverse proxy with proper cross-origin resource sharing (CORS) management and passes requests to an available Mina Daemon GraphQL endpoint.
