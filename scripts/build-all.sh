@@ -86,7 +86,7 @@ cd ${CURRENT_DIR}
 
 for TARGET_BRANCH in "${TARGET_BRANCHES[@]}"; do
   echo ""
-  echo "[INFO] Building Mina at branch: '${TARGET_BRANCH}' and then building the corresponding Docker Image"
+  echo "[INFO] Building Mina at branch: '${TARGET_BRANCH}' and then building the corresponding Docker image"
   echo ""
   BRANCH_NAME=${TARGET_BRANCH}
   # if [[ $TARGET_BRANCH == "o1js-main" ]]; then
@@ -95,6 +95,9 @@ for TARGET_BRANCH in "${TARGET_BRANCHES[@]}"; do
 
   gitPullAll && gitPullAll
   git checkout ${TARGET_BRANCH}
+  if [[ $TARGET_BRANCH == "develop" || $TARGET_BRANCH == "o1js-main" ]]; then
+    rm -rf ${MINA_REPO_DIR}/src/lib/snarkyjs
+  fi
   gitPullAll && gitPullAll
   opam switch import --switch mina --yes opam.export
   opam switch import opam.export --yes
