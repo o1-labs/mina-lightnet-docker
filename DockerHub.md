@@ -16,6 +16,10 @@ Each Docker image is packaged with the genesis ledger configuration with more th
 - [Mina accounts manager](https://github.com/shimkiv/mina-accounts-manager)
 - [Mina lightweight explorer](https://github.com/o1-labs/mina-lightweight-explorer)
 
+## Related documentation
+
+- [Testing zkApps with Lightnet](https://docs.minaprotocol.com/zkapps/testing-zkapps-lightnet)
+
 ## Specifications
 
 - This Docker image exposes port `8080` that is served by the NGINX reverse proxy with proper cross-origin resource sharing (CORS) management and passes requests to an available Mina Daemon GraphQL endpoint.
