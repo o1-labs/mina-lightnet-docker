@@ -51,6 +51,7 @@ jobs:
         run: sleep 15s
         shell: bash
   build-and-publish-arm64:
+    needs: [build-and-publish-amd64] # Make jobs run sequentially to avoid possible cloud provider issues
     runs-on: ubuntu-latest
     timeout-minutes: 300
     steps:
