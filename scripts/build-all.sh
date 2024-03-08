@@ -32,16 +32,6 @@ gitPullAll() {
     cd ${DIR}
     echo ""
     echo "Updating the \"$(pwd)\" repo:"
-    # if [[ ${DIR} == *"mina" ]]; then
-    #   cd src/lib/o1js/src/bindings
-    #   git stash
-    #   cd ../../../../../
-    #   cd src/lib/o1js
-    #   git stash
-    #   git submodule sync
-    #   git submodule update --recursive --init
-    #   cd ../../../
-    # fi
     git pull
     git reset
     git clean -f
@@ -94,7 +84,6 @@ for TARGET_BRANCH in "${TARGET_BRANCHES[@]}"; do
 
   gitPullAll && gitPullAll
   git checkout ${TARGET_BRANCH}
-  rm -rf ${MINA_REPO_DIR}/src/lib/snarkyjs || true
   gitPullAll && gitPullAll
   opam switch import --switch mina --yes opam.export
   opam switch import opam.export --yes
