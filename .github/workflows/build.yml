@@ -105,7 +105,7 @@ jobs:
       - name: Install and cache Hetzner Cloud CLI
         uses: 3bit/setup-hcloud@v2
       - name: Create mina-build-system-arm64 cloud VM
-        run: hcloud server create --name mina-build-system-arm64 --datacenter fsn1-dc14 --primary-ipv4 45241536 --image 153393088 --type cax21 --ssh-key app@localhost --start-after-create
+        run: hcloud server create --name mina-build-system-arm64 --datacenter fsn1-dc14 --primary-ipv4 45241536 --image 153393088 --type cax31 --ssh-key app@localhost --start-after-create
         env:
           HCLOUD_TOKEN: ${{ secrets.HETZNER_API_TOKEN }}
       - name: Sleep for 120 seconds
