@@ -130,6 +130,7 @@ if [[ $NETWORK_TYPE == "single-node" ]]; then
     --log-level ${LOG_LEVEL} \
     --file-log-level ${LOG_LEVEL} \
     --demo-mode \
+    --external-ip $(hostname -i) \
     --seed ${ARCHIVE_CLI_ARGS} >${DAEMON_LOG_FILE_PATH} 2>&1
 elif [[ $NETWORK_TYPE == "multi-node" ]]; then
   ARCHIVE_CLI_ARGS=""
