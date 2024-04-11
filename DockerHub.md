@@ -71,7 +71,7 @@ docker run --rm --pull=always -it \
   -p 8080:8080 \
   -p 8181:8181 \
   -p 8282:8282 \
-  o1labs/mina-local-network:o1js-main-latest-lightnet
+  o1labs/mina-local-network:berkeley-latest-lightnet
 ```
 
 #### Single Node network properties
@@ -108,7 +108,7 @@ jobs:
     ...
     services:
       mina-local-network:
-        image: o1labs/mina-local-network:o1js-main-latest-lightnet
+        image: o1labs/mina-local-network:berkeley-latest-lightnet
         env:
           NETWORK_TYPE: 'single-node'
           PROOF_LEVEL: 'none'
@@ -194,7 +194,7 @@ docker run --rm --pull=always -it \
  -p 8080:8080 \
  -p 8181:8181 \
  -p 8282:8282 \
- o1labs/mina-local-network:o1js-main-latest-lightnet
+ o1labs/mina-local-network:berkeley-latest-lightnet
 ```
 
 #### Multi-Node network properties
@@ -280,11 +280,11 @@ By default, logs produced by different processes will be redirected into the fil
 
 Several image tags are available for download like:
 
-- `o1js-main-latest-lightnet`
+- `berkeley-latest-lightnet`
 
 where:
 
-- The `o1js-main` prefix corresponds to the Mina GitHub repository branch
+- The `berkeley` prefix corresponds to the Mina GitHub repository branch
 - The `lightnet` suffix corresponds to the Dune profile that was used during the application build procedure for current image tag
 
 ## Mina accounts manager API
