@@ -23,7 +23,7 @@ Each Docker image is packaged with the genesis ledger configuration with more th
 ## Specifications
 
 - This Docker image exposes port `8080` that is served by the NGINX reverse proxy with proper cross-origin resource sharing (CORS) management and passes requests to an available Mina Daemon GraphQL endpoint.
-- To ensure that the **o1js** zkApps applications work without additional environment configuration, you must use an endpoint like `http://localhost:8080/graphql` to communicate with the Mina GraphQL endpoint.
+- To ensure that the **o1js** zkApps applications work without additional environment configuration, you must use an endpoint like `http://127.0.0.1:8080/graphql` to communicate with the Mina GraphQL endpoint.
 
 By default, containers run the [Mina Archive Node](https://docs.minaprotocol.com/node-operators/archive-node) along with the PostgreSQL RDBMS that stores the blockchain data.
 
@@ -38,7 +38,7 @@ Connection to the container's PostgreSQL can be used for other needs, including 
 - The default PostgreSQL connection string is:
 
   ```shell
-  postgresql://postgres:postgres@localhost:5432/archive
+  postgresql://postgres:postgres@127.0.0.1:5432/archive
   ```
 
 If no Mina Archive Node will run inside the container, then [Archive-Node-API](https://github.com/o1-labs/Archive-Node-API) won't be available.
@@ -297,11 +297,11 @@ The Mina accounts manager that runs inside the container provides the following 
 .:: Mina Accounts-Manager ::.
 -----------------------------
 
-Application initialized and is running at: http://localhost:8181
+Application initialized and is running at: http://127.0.0.1:8181
 Available endpoints:
 
    HTTP GET:
-   http://localhost:8181/acquire-account
+   http://127.0.0.1:8181/acquire-account
    Supported Query params:
                            isRegularAccount=<boolean>, default: true
                            Useful if you need to get non-zkApp account.
@@ -312,29 +312,29 @@ Available endpoints:
    { pk:"", sk:"" }
 
    HTTP PUT:
-   http://localhost:8181/release-account
+   http://127.0.0.1:8181/release-account
    Accepts JSON account key-pair as request payload:
    { pk:"", sk:"" }
    Returns JSON status message
 
    HTTP GET:
-   http://localhost:8181/list-acquired-accounts
+   http://127.0.0.1:8181/list-acquired-accounts
    Returns JSON list of acquired accounts key-pairs:
    [ { pk:"", sk:"" }, ... ]
 
    HTTP PUT:
-   http://localhost:8383/lock-account
+   http://127.0.0.1:8383/lock-account
    Accepts JSON account key-pair as request payload:
    { pk:"", sk:"" }
    Returns JSON status message
 
    HTTP PUT:
-   http://localhost:8181/unlock-account
+   http://127.0.0.1:8181/unlock-account
    Accepts JSON account key-pair as request payload:
    { pk:"", sk:"" }
    Returns JSON status message
 
 Operating with:
    Mina Genesis ledger:   /root/.mina-network/mina-local-network-2-1-1/daemon.json
-   Mina GraphQL endpoint: http://localhost:8080/graphql
+   Mina GraphQL endpoint: http://127.0.0.1:8080/graphql
 ```

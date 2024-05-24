@@ -19,7 +19,7 @@ mkdir -p ${HOME}/logs || true
 
 wait-for-service() {
   echo ""
-  while ! nc -z localhost ${1}; do
+  while ! nc -z 127.0.0.1 ${1}; do
     echo "Waiting for the service (:${1}) to be ready..."
     sleep 5
   done
@@ -36,7 +36,7 @@ prepare-rdbms() {
 
   echo "Updating the Archive Node RDBMS schema..."
   echo ""
-  psql postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${RDBMS_PORT}/${POSTGRES_DB} <create_schema.sql
+  psql postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:${RDBMS_PORT}/${POSTGRES_DB} <create_schema.sql
   echo ""
 }
 
@@ -59,7 +59,7 @@ nginx-reload() {
   echo ""
 
   cp -r ${HOME}/nginx.conf /etc/nginx/nginx.conf
-  perl -i -p -e "s~###PROXY_PASS###~proxy_pass  http://localhost:${GRAPHQL_PORT}/graphql;~g" /etc/nginx/nginx.conf
+  perl -i -p -e "s~###PROXY_PASS###~proxy_pass  http://127.0.0.1:${GRAPHQL_PORT}/graphql;~g" /etc/nginx/nginx.conf
   nginx -c /etc/nginx/nginx.conf
   nginx -s reload
 }
@@ -107,7 +107,7 @@ if [[ $NETWORK_TYPE == "single-node" ]]; then
     ${HOME}/archive.exe run \
       --config-file ${GENESIS_LEDGER_CONFIG_FILE} \
       --log-level ${LOG_LEVEL} \
-      --postgres-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${RDBMS_PORT}/${POSTGRES_DB} \
+      --postgres-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:${RDBMS_PORT}/${POSTGRES_DB} \
       --server-port ${ARCHIVE_NODE_PORT} >${ARCHIVE_LOG_FILE_PATH} 2>&1 &
     wait-for-service ${ARCHIVE_NODE_PORT}
   fi

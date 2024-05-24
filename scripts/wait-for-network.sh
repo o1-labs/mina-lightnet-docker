@@ -10,14 +10,14 @@ START=$(date +%s)
 CURRENT_DIR="$(pwd)"
 
 MINA_DAEMON_GRAPHQL_PORT=${1}
-MINA_DAEMON_GRAPHQL_URL="http://localhost:${MINA_DAEMON_GRAPHQL_PORT}/graphql"
+MINA_DAEMON_GRAPHQL_URL="http://127.0.0.1:${MINA_DAEMON_GRAPHQL_PORT}/graphql"
 QUERY='{"query": "{ syncStatus }"}'
 MAX_ATTEMPTS=60
 SLEEP_DURATION=10
 attempt=1
 synced=false
 
-while ! nc -z localhost ${MINA_DAEMON_GRAPHQL_PORT}; do
+while ! nc -z 127.0.0.1 ${MINA_DAEMON_GRAPHQL_PORT}; do
   sleep 1
 done
 
