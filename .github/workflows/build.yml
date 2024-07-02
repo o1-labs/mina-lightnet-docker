@@ -31,7 +31,7 @@ jobs:
           host: ${{ secrets.MINA_BUILD_SYSTEM_AMD64_IP }}
           username: ${{ secrets.MINA_BUILD_SYSTEM_SSH_USER_NAME }}
           key: ${{ secrets.MINA_BUILD_SYSTEM_SSH_PRIVATE_KEY }}
-          script: bash -ilc "${HOME}/projects/o1labs/mina-lightnet-docker/scripts/build-all.sh amd64 ${HOME}/projects/o1labs/mina ${HOME}/projects/o1labs/Archive-Node-API ${HOME}/projects/o1labs/mina-lightnet-docker \"v0.1.1\" o1labs \"develop berkeley\""
+          script: bash -ilc "${HOME}/projects/o1labs/mina-lightnet-docker/scripts/build-all.sh amd64 ${HOME}/projects/o1labs/mina ${HOME}/projects/o1labs/Archive-Node-API ${HOME}/projects/o1labs/mina-lightnet-docker \"v0.1.1\" o1labs \"develop compatible master\""
           command_timeout: 300m
       - name: Sleep for 15 seconds
         run: sleep 15s
@@ -78,7 +78,7 @@ jobs:
           host: ${{ secrets.MINA_BUILD_SYSTEM_ARM64_IP }}
           username: ${{ secrets.MINA_BUILD_SYSTEM_SSH_USER_NAME }}
           key: ${{ secrets.MINA_BUILD_SYSTEM_SSH_PRIVATE_KEY }}
-          script: bash -ilc "${HOME}/projects/o1labs/mina-lightnet-docker/scripts/build-all.sh arm64 ${HOME}/projects/o1labs/mina ${HOME}/projects/o1labs/Archive-Node-API ${HOME}/projects/o1labs/mina-lightnet-docker \"v0.1.1\" o1labs \"develop berkeley\""
+          script: bash -ilc "${HOME}/projects/o1labs/mina-lightnet-docker/scripts/build-all.sh arm64 ${HOME}/projects/o1labs/mina ${HOME}/projects/o1labs/Archive-Node-API ${HOME}/projects/o1labs/mina-lightnet-docker \"v0.1.1\" o1labs \"develop compatible master\""
           command_timeout: 300m
       - name: Sleep for 15 seconds
         run: sleep 15s
@@ -125,7 +125,7 @@ jobs:
           host: ${{ secrets.MINA_BUILD_SYSTEM_ARM64_IP }}
           username: ${{ secrets.MINA_BUILD_SYSTEM_SSH_USER_NAME }}
           key: ${{ secrets.MINA_BUILD_SYSTEM_SSH_PRIVATE_KEY }}
-          script: bash -ilc "${HOME}/projects/o1labs/mina-lightnet-docker/scripts/manage-manifests.sh o1labs \"develop berkeley\""
+          script: bash -ilc "${HOME}/projects/o1labs/mina-lightnet-docker/scripts/manage-manifests.sh o1labs \"develop compatible master\""
           command_timeout: 60m
       - name: Sleep for 15 seconds
         run: sleep 15s
