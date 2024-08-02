@@ -54,7 +54,7 @@ ENV POSTGRES_USER=postgres
 ENV POSTGRES_PASSWORD=postgres
 ENV POSTGRES_DB=archive
 
-RUN ./mina.exe advanced compile-time-constants
+RUN ./mina.exe --version
 
 ENTRYPOINT [ "bash", "-c" ]
 CMD [ "/root/spinup-testnet.sh" ]
