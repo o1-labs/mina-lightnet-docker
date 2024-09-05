@@ -81,6 +81,7 @@ for TARGET_BRANCH in "${TARGET_BRANCHES[@]}"; do
   gitPullAll && gitPullAll
   git checkout ${TARGET_BRANCH}
   gitPullAll && gitPullAll
+  opam repository add --yes --all --set-default o1-labs https://github.com/o1-labs/opam-repository.git
   opam switch import --switch mina --yes opam.export
   opam switch import opam.export --yes
   chmod +x scripts/pin-external-packages.sh
