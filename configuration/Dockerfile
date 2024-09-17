@@ -19,7 +19,6 @@ COPY spinup-testnet.sh /root/
 COPY mina-local-network.sh /root/
 COPY drop_tables.sql /root/
 COPY create_schema.sql /root/
-COPY zkapp_tables.sql /root/
 COPY mina.exe /root/
 COPY archive.exe /root/
 COPY libp2p_helper /root/

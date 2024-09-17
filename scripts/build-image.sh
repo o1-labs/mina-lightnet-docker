@@ -41,11 +41,6 @@ done
 cp -r ${MINA_REPO_DIR}/scripts/mina-local-network/mina-local-network.sh ${TMP_FOLDER}/
 cp -r ${MINA_REPO_DIR}/src/app/archive/drop_tables.sql ${TMP_FOLDER}/
 cp -r ${MINA_REPO_DIR}/src/app/archive/create_schema.sql ${TMP_FOLDER}/
-if [[ "${DOCKER_HUB_IMAGE_TAG}" == "develop-latest-devnet" || "${DOCKER_HUB_IMAGE_TAG}" == "develop-latest-lightnet" || "${DOCKER_HUB_IMAGE_TAG}" == "compatible-latest-devnet" || "${DOCKER_HUB_IMAGE_TAG}" == "compatible-latest-lightnet" ]]; then
-  touch ${TMP_FOLDER}/zkapp_tables.sql
-else
-  cp -r ${MINA_REPO_DIR}/src/app/archive/zkapp_tables.sql ${TMP_FOLDER}/
-fi
 cp -r ${MINA_REPO_DIR}/_build/default/src/app/cli/src/mina.exe ${TMP_FOLDER}/
 cp -r ${MINA_REPO_DIR}/src/app/libp2p_helper/result/bin/libp2p_helper ${TMP_FOLDER}/
 cp -r ${MINA_REPO_DIR}/_build/default/src/app/archive/archive.exe ${TMP_FOLDER}/
