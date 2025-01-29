@@ -66,6 +66,8 @@ docker run --rm --pull=always -it \
   --env NETWORK_TYPE="single-node" \
   --env PROOF_LEVEL="none" \
   --env LOG_LEVEL="Info" \
+  --env RUN_ARCHIVE_NODE="true" \
+  --env SLOT_TIME="20000" \
   -p 3085:3085 \
   -p 5432:5432 \
   -p 8080:8080 \
@@ -187,6 +189,8 @@ docker run --rm --pull=always -it \
  --env NETWORK_TYPE="multi-node" \
  --env PROOF_LEVEL="none" \
  --env LOG_LEVEL="Info" \
+ --env RUN_ARCHIVE_NODE="true" \
+ --env SLOT_TIME="20000" \
  -p 4001:4001 \
  -p 4006:4006 \
  -p 5001:5001 \

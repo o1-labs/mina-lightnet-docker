@@ -6,6 +6,9 @@
     "_block_window_duration": 20000,
     "genesis_state_timestamp": "2023-06-09T00:00:00+0300"
   },
+  "proof": {
+    "block_window_duration_ms": 20000
+  },
   "ledger": {
     "name": "testnet",
     "accounts": [

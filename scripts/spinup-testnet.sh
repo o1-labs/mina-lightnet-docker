@@ -96,6 +96,11 @@ if [[ $NETWORK_TYPE == "single-node" ]]; then
   tmp=$(mktemp)
   jq ".genesis.genesis_state_timestamp=\"$(date +"%Y-%m-%dT%H:%M:%S%z")\"" ${GENESIS_LEDGER_CONFIG_FILE} >"$tmp" && mv -f "$tmp" ${GENESIS_LEDGER_CONFIG_FILE}
 
+  echo "Updating the Genesis State timestamp..."
+  echo ""
+  tmp=$(mktemp)
+  jq ".proof.block_window_duration_ms=${SLOT_TIME}" ${GENESIS_LEDGER_CONFIG_FILE} >"$tmp" && mv -f "$tmp" ${GENESIS_LEDGER_CONFIG_FILE}
+
   nginx-reload 3085
 
   if [[ $RUN_ARCHIVE_NODE == "true" ]]; then
@@ -145,7 +150,7 @@ elif [[ $NETWORK_TYPE == "multi-node" ]]; then
     ARCHIVE_CLI_ARGS=" --archive --pg-user ${POSTGRES_USER} --pg-passwd ${POSTGRES_PASSWORD} --pg-db ${POSTGRES_DB}"
   fi
 
-  bash ${HOME}/mina-local-network.sh -sp 3100 -w 2 -f 1 -n 1 -u -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS}
+  bash ${HOME}/mina-local-network.sh -sp 3100 -w 2 -f 1 -n 1 -u -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} --override-slot-time ${SLOT_TIME} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS}
 else
   echo ""
   echo "Unknown network type: $NETWORK_TYPE"

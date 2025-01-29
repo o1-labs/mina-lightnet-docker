@@ -1,6 +1,10 @@
 FROM postgres:14-bookworm
 
-RUN apt update && apt install -y --no-install-recommends python3 python3-pip jq wget curl psmisc libpq-dev libjemalloc-dev libffi-dev nginx netcat-traditional && apt clean && rm -rf /var/lib/apt/lists/*
+RUN apt update \
+  && apt install -y --no-install-recommends \
+  python3 python3-p ip jq wget curl psmisc libpq-dev libjemalloc-dev libffi-dev nginx netcat-traditional \
+  && apt clean \
+  && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_VERSION=22.9.0
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
@@ -10,8 +14,7 @@ RUN . "$NVM_DIR/nvm.sh" && nvm use v${NODE_VERSION}
 RUN . "$NVM_DIR/nvm.sh" && nvm alias default v${NODE_VERSION}
 RUN . "$NVM_DIR/nvm.sh" && npm install -g npm
 ENV PATH="/root/.nvm/versions/node/v${NODE_VERSION}/bin/:${PATH}"
-RUN node --version
-RUN npm --version
+RUN node --version && npm --version
 
 COPY mina-local-network-2-1-1/ /root/.mina-network/mina-local-network-2-1-1/
 COPY nginx.conf /root/
@@ -27,12 +30,12 @@ COPY Archive-Node-API/ /root/Archive-Node-API/
 
 WORKDIR /root
 
-RUN chmod +x mina.exe
-RUN chmod +x archive.exe
-RUN chmod +x libp2p_helper
-RUN chmod +x spinup-testnet.sh
-RUN chmod +x mina-local-network.sh
-# RUN chmod +x accounts-manager
+RUN chmod +x mina.exe \
+  && chmod +x archive.exe \
+  && chmod +x libp2p_helper \
+  && chmod +x spinup-testnet.sh \
+  && chmod +x mina-local-network.sh
+# && chmod +x accounts-manager
 
 EXPOSE 3085
 EXPOSE 4001
@@ -48,6 +51,7 @@ ENV RUN_ARCHIVE_NODE="true"
 ENV NETWORK_TYPE="single-node"
 ENV PROOF_LEVEL="full"
 ENV LOG_LEVEL="Trace"
+ENV SLOT_TIME=20000
 ENV MINA_LIBP2P_HELPER_PATH=/root/libp2p_helper
 ENV POSTGRES_USER=postgres
 ENV POSTGRES_PASSWORD=postgres
