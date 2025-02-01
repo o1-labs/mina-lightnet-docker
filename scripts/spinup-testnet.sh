@@ -79,6 +79,7 @@ if [ -f "${ACCOUNTS_MANAGER_EXE}" ]; then
   echo "Starting the Accounts-Manager service..."
   echo ""
 
+  chmod +x ${ACCOUNTS_MANAGER_EXE}
   ${ACCOUNTS_MANAGER_EXE} ${GENESIS_LEDGER_CONFIG_FILE} 8181 8080 "naughty blue worm" &
 fi
 
@@ -96,7 +97,7 @@ if [[ $NETWORK_TYPE == "single-node" ]]; then
   tmp=$(mktemp)
   jq ".genesis.genesis_state_timestamp=\"$(date +"%Y-%m-%dT%H:%M:%S%z")\"" ${GENESIS_LEDGER_CONFIG_FILE} >"$tmp" && mv -f "$tmp" ${GENESIS_LEDGER_CONFIG_FILE}
 
-  echo "Updating the Genesis State timestamp..."
+  echo "Updating the Genesis slot time..."
   echo ""
   tmp=$(mktemp)
   jq ".proof.block_window_duration_ms=${SLOT_TIME}" ${GENESIS_LEDGER_CONFIG_FILE} >"$tmp" && mv -f "$tmp" ${GENESIS_LEDGER_CONFIG_FILE}
