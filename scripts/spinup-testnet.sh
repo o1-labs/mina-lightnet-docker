@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
-# set -x
+
+set -x
 
 # Exit script when commands fail
 set -e
 # Kill background process when script exits
 trap "killall background" EXIT
 
-ARCHIVE_NODE_PORT=3086
 RDBMS_PORT=5432
 ARCHIVE_NODE_API_PORT=8282
 ARCHIVE_NODE_API_LOG_FILE_PATH=${HOME}/logs/archive-node-api.log
 LEDGER_FOLDER="${HOME}/.mina-network/mina-local-network-2-1-1"
 GENESIS_LEDGER_CONFIG_FILE=${LEDGER_FOLDER}/daemon.json
-ACCOUNTS_MANAGER_EXE="${HOME}/accounts-manager"
-KEYS_FOR_PERMISSIONS_UPDATE=(${HOME}/.mina-network/mina-local-network-2-1-1/libp2p_keys ${HOME}/.mina-network/mina-local-network-2-1-1/offline_fish_keys ${HOME}/.mina-network/mina-local-network-2-1-1/offline_whale_keys ${HOME}/.mina-network/mina-local-network-2-1-1/online_fish_keys ${HOME}/.mina-network/mina-local-network-2-1-1/online_whale_keys ${HOME}/.mina-network/mina-local-network-2-1-1/service-keys ${HOME}/.mina-network/mina-local-network-2-1-1/snark_coordinator_keys ${HOME}/.mina-network/mina-local-network-2-1-1/zkapp_keys ${HOME}/.mina-network/mina-local-network-2-1-1/nodes/fish_0/wallets/store/ ${HOME}/.mina-network/mina-local-network-2-1-1/nodes/node_0/wallets/store/ ${HOME}/.mina-network/mina-local-network-2-1-1/nodes/seed/wallets/store/ ${HOME}/.mina-network/mina-local-network-2-1-1/nodes/whale_0/wallets/store/ ${HOME}/.mina-network/mina-local-network-2-1-1/nodes/whale_1/wallets/store/)
+
+
+KEYS_FOR_PERMISSIONS_UPDATE=(${HOME}/.mina-network/mina-local-network-2-1-1/libp2p_keys ${HOME}/.mina-network/mina-local-network-2-1-1/offline_fish_keys ${HOME}/.mina-network/mina-local-network-2-1-1/offline_whale_keys ${HOME}/.mina-network/mina-local-network-2-1-1/online_fish_keys ${HOME}/.mina-network/mina-local-network-2-1-1/online_whale_keys ${HOME}/.mina-network/mina-local-network-2-1-1/service-keys ${HOME}/.mina-network/mina-local-network-2-1-1/snark_coordinator_keys ${HOME}/.mina-network/mina-local-network-2-1-1/zkapp_keys )
 
 mkdir -p ${HOME}/logs || true
 
@@ -36,7 +37,7 @@ prepare-rdbms() {
 
   echo "Updating the Archive Node RDBMS schema..."
   echo ""
-  psql postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:${RDBMS_PORT}/${POSTGRES_DB} <create_schema.sql
+  psql postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:${RDBMS_PORT}/${POSTGRES_DB} < /etc/mina/archive/create_schema.sql
   echo ""
 }
 
@@ -45,9 +46,7 @@ start-archive-node-api() {
   echo "Starting the Archive-Node-API service..."
   echo "Archive-Node-API log file: ${ARCHIVE_NODE_API_LOG_FILE_PATH}"
   echo ""
-  cd ${HOME}/Archive-Node-API/
-  npm run start >${ARCHIVE_NODE_API_LOG_FILE_PATH} 2>&1 &
-  cd ../
+  PORT=${ARCHIVE_NODE_API_PORT} PG_CONN="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:${RDBMS_PORT}/${POSTGRES_DB}" archive-node-api >${ARCHIVE_NODE_API_LOG_FILE_PATH} 2>&1 &
   wait-for-service ${ARCHIVE_NODE_API_PORT}
   echo ""
 }
@@ -74,84 +73,59 @@ if [[ $RUN_ARCHIVE_NODE == "true" ]]; then
   start-archive-node-api
 fi
 
-if [ -f "${ACCOUNTS_MANAGER_EXE}" ]; then
+if [[ $NETWORK_TYPE == "single-node" ]]; then
+  LEDGER_FOLDER="${HOME}/.mina-network/mina-local-network-2-1-1"
+elif [[ $NETWORK_TYPE == "multi-node" ]]; then
+  LEDGER_FOLDER="${HOME}/.mina-network/mina-local-network-demo"
+else
   echo ""
-  echo "Starting the Accounts-Manager service..."
+  echo "Unknown network type: $NETWORK_TYPE"
   echo ""
 
-  chmod +x ${ACCOUNTS_MANAGER_EXE}
-  ${ACCOUNTS_MANAGER_EXE} ${GENESIS_LEDGER_CONFIG_FILE} 8181 8080 "naughty blue worm" &
+  exit 1
 fi
 
+GENESIS_LEDGER_CONFIG_FILE=${LEDGER_FOLDER}/daemon.json
+
+echo ""
+echo "Starting the Accounts-Manager service..."
+echo ""
+
+"accounts-manager" "${GENESIS_LEDGER_CONFIG_FILE}" 8181 3101 "naughty blue worm" &
+
+if [[ $RUN_ARCHIVE_NODE == "true" ]]; then
+    ARCHIVE_CLI_ARGS=" --archive --pg-user ${POSTGRES_USER} --pg-passwd ${POSTGRES_PASSWORD} --pg-db ${POSTGRES_DB}"
+else
+    ARCHIVE_CLI_ARGS=""
+fi
+
+nginx-reload 4006
+
+export MINA_EXE=mina
+export ARCHIVE_EXE=mina-archive
+export LOGPROC_EXE=mina-logproc
+
 if [[ $NETWORK_TYPE == "single-node" ]]; then
-  ARCHIVE_LOG_FILE_PATH=${HOME}/logs/archive-node.log
-  DAEMON_LOG_FILE_PATH=${HOME}/logs/single-node-network.log
-  ARCHIVE_CLI_ARGS=""
 
   echo ""
   echo "Starting Single-Node network."
   echo ""
 
-  echo "Updating the Genesis State timestamp..."
-  echo ""
-  tmp=$(mktemp)
-  jq ".genesis.genesis_state_timestamp=\"$(date +"%Y-%m-%dT%H:%M:%S%z")\"" ${GENESIS_LEDGER_CONFIG_FILE} >"$tmp" && mv -f "$tmp" ${GENESIS_LEDGER_CONFIG_FILE}
+  cp -R ${HOME}/.mina-network/mina-local-network-2-1-1 ${LEDGER_FOLDER}
 
-  echo "Updating the Genesis slot time..."
-  echo ""
-  tmp=$(mktemp)
-  jq ".proof.block_window_duration_ms=${SLOT_TIME}" ${GENESIS_LEDGER_CONFIG_FILE} >"$tmp" && mv -f "$tmp" ${GENESIS_LEDGER_CONFIG_FILE}
+  bash ${HOME}/scripts/mina-local-network/mina-local-network.sh -sp 3100 --demo -u -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} --override-slot-time ${SLOT_TIME} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS}
 
-  nginx-reload 3085
-
-  if [[ $RUN_ARCHIVE_NODE == "true" ]]; then
-    ARCHIVE_CLI_ARGS="--archive-address ${ARCHIVE_NODE_PORT}"
-
-    echo "Starting the Archive Node..."
-    echo "Mina Archive node log file: ${ARCHIVE_LOG_FILE_PATH}"
-    echo ""
-    ${HOME}/archive.exe run \
-      --config-file ${GENESIS_LEDGER_CONFIG_FILE} \
-      --log-level ${LOG_LEVEL} \
-      --postgres-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:${RDBMS_PORT}/${POSTGRES_DB} \
-      --server-port ${ARCHIVE_NODE_PORT} >${ARCHIVE_LOG_FILE_PATH} 2>&1 &
-    wait-for-service ${ARCHIVE_NODE_PORT}
-  fi
-
-  echo "Starting the Mina Daemon..."
-  echo "Mina Daemon log file: ${DAEMON_LOG_FILE_PATH}"
-  echo ""
-  MINA_PRIVKEY_PASS="naughty blue worm" \
-    MINA_LIBP2P_PASS="naughty blue worm" \
-    ${HOME}/mina.exe daemon \
-    --config-file ${GENESIS_LEDGER_CONFIG_FILE} \
-    --config-directory ${LEDGER_FOLDER}/nodes/whale_0 \
-    --libp2p-keypair ${LEDGER_FOLDER}/libp2p_keys/node_0 \
-    --block-producer-key ${LEDGER_FOLDER}/online_whale_keys/online_whale_account_0 \
-    --run-snark-worker "$(cat ${LEDGER_FOLDER}/snark_coordinator_keys/snark_coordinator_account.pub)" \
-    --snark-worker-fee 0.001 \
-    --proof-level ${PROOF_LEVEL} \
-    --insecure-rest-server \
-    --log-json \
-    --log-level ${LOG_LEVEL} \
-    --file-log-level ${LOG_LEVEL} \
-    --demo-mode \
-    --external-ip $(hostname -i) \
-    --seed ${ARCHIVE_CLI_ARGS} >${DAEMON_LOG_FILE_PATH} 2>&1
 elif [[ $NETWORK_TYPE == "multi-node" ]]; then
-  ARCHIVE_CLI_ARGS=""
 
   echo ""
   echo "Starting Multi-Node network."
   echo ""
 
-  nginx-reload 4006
-
   if [[ $RUN_ARCHIVE_NODE == "true" ]]; then
     ARCHIVE_CLI_ARGS=" --archive --pg-user ${POSTGRES_USER} --pg-passwd ${POSTGRES_PASSWORD} --pg-db ${POSTGRES_DB}"
   fi
 
-  bash ${HOME}/mina-local-network.sh -sp 3100 -w 2 -f 1 -n 1 -u -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} --override-slot-time ${SLOT_TIME} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS}
+  bash ${HOME}/scripts/mina-local-network/mina-local-network.sh -sp 3100 -w 2 -f 1 -n 1 -u -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} --override-slot-time ${SLOT_TIME} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS}
 else
   echo ""
   echo "Unknown network type: $NETWORK_TYPE"
