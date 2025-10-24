@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # Default values
-ARCH=""
+ARCHS=""
 MINA_RELEASE="stable"
 MINA_BRANCH=""
 ARCHIVE_NODE_API_VERSION="1.0.0"
@@ -18,7 +18,7 @@ usage() {
   echo "Usage: $0 [OPTIONS]"
   echo ""
   echo "Options:"
-  echo "  -a, --arch ARCH                       Architecture (required)"
+  echo "  -a, --archs ARCHS                     Architecture (required)"
   echo "  -m, --mina-release VERSION            Mina release (required)"
   echo "  -b, --mina-branch BRANCH              Mina branch (optional)"
   echo "  -n, --archive-api-version PATH        Archive-Node-API version (required)"
@@ -30,14 +30,14 @@ usage() {
   echo "  -h, --help                            Display this help message"
   echo ""
   echo "Example:"
-  echo "  $0 --arch amd64 --mina-version 3.3.0*  --archive-api-version v1.0.0 --proof-level full --accounts-manager-version 1.0.0 --docker-user myuser --tag latest"
+  echo "  $0 --archs arm64,amd64 --mina-version 3.3.0*  --archive-api-version v1.0.0 --proof-level full --accounts-manager-version 1.0.0 --docker-user myuser --tag latest"
 }
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
   case $1 in
-    -a|--arch)
-      ARCH="$2"
+    -a|--archs)
+      ARCHS="$2"
       shift 2
       ;;
     -m|--mina-release)
@@ -87,8 +87,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Validate required parameters
-if [[ -z "$ARCH" ]]; then
-  echo "Error: Architecture (-a/--arch) is required"
+if [[ -z "$ARCHS" ]]; then
+  echo "Error: Architectures (-a/--archs) are required"
   usage
   exit 1
 fi
@@ -151,19 +151,30 @@ case $MINA_RELEASE in
     ;;
 esac
 
+# Convert ARCHS to platform format (linux/{arch})
+PLATFORMS=""
+IFS=',' read -ra ARCH_ARRAY <<< "$ARCHS"
+for arch in "${ARCH_ARRAY[@]}"; do
+  if [[ -z "$PLATFORMS" ]]; then
+    PLATFORMS="linux/${arch}"
+  else
+    PLATFORMS="${PLATFORMS},linux/${arch}"
+  fi
+done
+
 echo ""
 echo "Building the Docker image..."
 echo ""
-docker rmi -f ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG}-${ARCH} || true
+docker rmi -f ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG} || true
 docker rmi -f mina-local-network || true
-docker build --platform linux/${ARCH} -t mina-local-network:${DOCKER_HUB_IMAGE_TAG}-${ARCH} --build-arg="MINA_PROFILE=${MINA_PROFILE}" --build-arg="MINA_REPO=${MINA_REPO}" --build-arg="MINA_BRANCH=${MINA_BRANCH}" --build-arg="ARCHIVE_NODE_API_TAG=${ARCHIVE_NODE_API_VERSION}" --build-arg="MINA_ACCOUNTS_MANAGER_VERSION=${ACCOUNTS_MANAGER_VERSION}" --build-arg="PROOF_LEVEL=${PROOF_LEVEL}" . -f configuration/Dockerfile
+docker buildx build --platform ${PLATFORMS} -t mina-local-network:${DOCKER_HUB_IMAGE_TAG} --build-arg="MINA_PROFILE=${MINA_PROFILE}" --build-arg="MINA_REPO=${MINA_REPO}" --build-arg="MINA_BRANCH=${MINA_BRANCH}" --build-arg="ARCHIVE_NODE_API_TAG=${ARCHIVE_NODE_API_VERSION}" --build-arg="MINA_ACCOUNTS_MANAGER_VERSION=${ACCOUNTS_MANAGER_VERSION}" --build-arg="PROOF_LEVEL=${PROOF_LEVEL}" . -f configuration/Dockerfile
 
 
 if [[ $PUSH -eq 1 ]]; then
   echo ""
   echo "Publishing the Docker image..."
-  docker tag mina-local-network ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG}-${ARCH}
-  docker push ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG}-${ARCH}
+  docker tag mina-local-network ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG}
+  docker push ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG}
 
 else
   echo ""

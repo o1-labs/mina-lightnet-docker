@@ -44,7 +44,7 @@ is_valid_mina_release() {
 while [[ $# -gt 0 ]]; do
   case $1 in
     --archs)
-      IFS=',' read -r -a ARCHS <<< "$2"
+      ARCHS="$2"
       shift 2
       ;;
     --archive-api-version)
@@ -117,7 +117,7 @@ START=$(date +%s)
 
 function build-image() {
   local branch_name="$1"
-  local arch="$2"
+  local archs="$2"
 
   if [[ -z "$branch_name" ]]; then
     local branch_name_arg=""
@@ -131,7 +131,7 @@ function build-image() {
 
   # shellcheck disable=SC2046
   SKIP_ARG=$(if [[ $PUSH -eq 1 ]]; then echo ""; else echo "--skip-push"; fi)
-  "${DOCKER_IMAGE_BUILDING_SCRIPTS_REPO_DIR}scripts/build-image.sh" --arch "${arch}" \
+  "${DOCKER_IMAGE_BUILDING_SCRIPTS_REPO_DIR}scripts/build-image.sh" --archs "${archs}" \
       --mina-release "${MINA_RELEASE}" \
       --archive-api-version "${ARCHIVE_NODE_API_VERSION}" \
       --proof-level full \
@@ -147,7 +147,7 @@ function build-image() {
   echo "[INFO] For Lightnet dune profile..."
   echo ""
 
-  "${DOCKER_IMAGE_BUILDING_SCRIPTS_REPO_DIR}scripts/build-image.sh" --arch "${arch}" \
+  "${DOCKER_IMAGE_BUILDING_SCRIPTS_REPO_DIR}scripts/build-image.sh" --archs "${archs}" \
       --mina-release "${MINA_RELEASE}" \
       --archive-api-version "${ARCHIVE_NODE_API_VERSION}" \
       --proof-level none \
@@ -189,16 +189,13 @@ done
 
 CURRENT_DIR=$PWD
 
-for ARCH in "${ARCHS[@]}"; do
-  if [[ "$MINA_RELEASE" == "nightly" ]]; then
-    for branch in "${TARGET_BRANCHES[@]}"; do
-
-      build-image "$branch" "$ARCH"
-    done
-  else
-    build-image "" "$ARCH"
-  fi
-done
+if [[ "$MINA_RELEASE" == "nightly" ]]; then
+  for branch in "${TARGET_BRANCHES[@]}"; do
+    build-image "$branch" "${ARCHS[@]}"
+  done
+else
+  build-image "" "${ARCHS[@]}"
+fi
 
 echo ""
 echo "Cleaning up..."
