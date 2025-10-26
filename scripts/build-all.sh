@@ -12,6 +12,7 @@ DOCKER_HUB_USER_NAME=""
 MINA_RELEASE="stable"
 TARGET_BRANCHES=()
 PUSH=1
+EXTRA_DOCKER_SUFFIX=""
 
 # Define allowed values for MINA_RELEASE (enum-like behavior)
 ALLOWED_MINA_RELEASES=("stable" "nightly" "alpha" "beta")
@@ -26,6 +27,8 @@ usage() {
   echo "  --docker-scripts-dir DIR                     Docker image building scripts directory (required)"
   echo "  --accounts-manager-version VERSION           Mina-Accounts-Manager version (required)"
   echo "  --docker-hub-user USER                       Docker Hub username (required)"
+  echo "  --skip-push                                  Skip pushing images to Docker Hub"
+  echo "  --extra-docker-suffix SUFFIX                 Extra suffix to append to Docker image tags"
   echo "  -h, --help                                   Show this help message"
 }
 
@@ -80,6 +83,10 @@ while [[ $# -gt 0 ]]; do
       fi
       shift 2
       ;;
+    --extra-docker-suffix)
+      EXTRA_DOCKER_SUFFIX="$2"
+      shift 2
+      ;;
     -h|--help)
       usage
       ;;
@@ -125,6 +132,12 @@ function build-image() {
     local branch_name_arg="--mina-branch ${branch_name}"
   fi
 
+  # Construct tag suffix
+  local tag_suffix=""
+  if [[ -n "$EXTRA_DOCKER_SUFFIX" ]]; then
+    tag_suffix="-${EXTRA_DOCKER_SUFFIX}"
+  fi
+
   echo ""
   echo "[INFO] For Devnet dune profile..."
   echo ""
@@ -138,7 +151,7 @@ function build-image() {
       --mina-profile devnet \
       ${branch_name_arg} \
       --docker-user "${DOCKER_HUB_USER_NAME}" \
-      --tag "${branch_name}-latest-devnet" \
+      --tag "${branch_name}-latest-devnet${tag_suffix}" \
       --accounts-manager-version "${MINA_ACCOUNTS_MANAGER_VERSION}" \
       ${SKIP_ARG}
 
@@ -154,7 +167,7 @@ function build-image() {
       --mina-profile devnet-lightnet \
       ${branch_name_arg} \
       --docker-user "${DOCKER_HUB_USER_NAME}" \
-      --tag "${branch_name}-latest-lightnet" \
+      --tag "${branch_name}-latest-lightnet${tag_suffix}" \
       --accounts-manager-version "${MINA_ACCOUNTS_MANAGER_VERSION}" \
       ${SKIP_ARG}
 }
