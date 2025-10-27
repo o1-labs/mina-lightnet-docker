@@ -165,23 +165,22 @@ done
 echo ""
 echo "Building the Docker image..."
 echo ""
+
 docker rmi -f ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG} || true
 docker rmi -f mina-local-network || true
-docker buildx build --platform ${PLATFORMS} -t mina-local-network:${DOCKER_HUB_IMAGE_TAG} --build-arg="MINA_PROFILE=${MINA_PROFILE}" --build-arg="MINA_REPO=${MINA_REPO}" --build-arg="MINA_BRANCH=${MINA_BRANCH}" --build-arg="ARCHIVE_NODE_API_TAG=${ARCHIVE_NODE_API_VERSION}" --build-arg="MINA_ACCOUNTS_MANAGER_VERSION=${ACCOUNTS_MANAGER_VERSION}" --build-arg="PROOF_LEVEL=${PROOF_LEVEL}" . -f configuration/Dockerfile
-
 
 if [[ $PUSH -eq 1 ]]; then
   echo ""
   echo "Publishing the Docker image..."
-  docker tag mina-local-network ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG}
-  docker push ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG}
-
+  PUSH_FLAG="--push"
 else
   echo ""
   echo "Skipping the Docker image publishing step as requested."
   echo ""
-  exit 0
+  PUSH_FLAG="--load"
 fi
+
+docker buildx build --platform ${PLATFORMS} ${PUSH_FLAG} -t ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG} --build-arg="MINA_PROFILE=${MINA_PROFILE}" --build-arg="MINA_REPO=${MINA_REPO}" --build-arg="MINA_BRANCH=${MINA_BRANCH}" --build-arg="ARCHIVE_NODE_API_TAG=${ARCHIVE_NODE_API_VERSION}" --build-arg="MINA_ACCOUNTS_MANAGER_VERSION=${ACCOUNTS_MANAGER_VERSION}" --build-arg="PROOF_LEVEL=${PROOF_LEVEL}" . -f configuration/Dockerfile
 
 END=$(date +%s)
 RUNTIME=$((END-START))
