@@ -111,8 +111,6 @@ if [[ $NETWORK_TYPE == "single-node" ]]; then
   echo "Starting Single-Node network."
   echo ""
 
-  cp -R ${HOME}/.mina-network/mina-local-network-2-1-1 ${LEDGER_FOLDER}
-
   bash ${HOME}/scripts/mina-local-network/mina-local-network.sh -sp 3100 --demo -u -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} --override-slot-time ${SLOT_TIME} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS}
 
 elif [[ $NETWORK_TYPE == "multi-node" ]]; then
