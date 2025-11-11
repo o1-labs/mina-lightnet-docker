@@ -105,7 +105,8 @@ export LOGPROC_EXE=mina-logproc
 
 if [[ $NETWORK_TYPE == "single-node" ]]; then
 
-  nginx-reload 3085
+  # Redirect 8080 to 3101 (daemon rest port) for single-node networks
+  nginx-reload 3101
 
   echo ""
   echo "Starting Single-Node network."
