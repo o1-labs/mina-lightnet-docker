@@ -99,13 +99,13 @@ else
     ARCHIVE_CLI_ARGS=""
 fi
 
-nginx-reload 4006
-
 export MINA_EXE=mina
 export ARCHIVE_EXE=mina-archive
 export LOGPROC_EXE=mina-logproc
 
 if [[ $NETWORK_TYPE == "single-node" ]]; then
+
+  nginx-reload 3085
 
   echo ""
   echo "Starting Single-Node network."
@@ -114,6 +114,9 @@ if [[ $NETWORK_TYPE == "single-node" ]]; then
   bash ${HOME}/scripts/mina-local-network/mina-local-network.sh -sp 3100 --demo -u -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} --override-slot-time ${SLOT_TIME} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS}
 
 elif [[ $NETWORK_TYPE == "multi-node" ]]; then
+
+  #TODO: Find out why Nginx needs to be reloaded twice to work properly and why 4006 ?
+  nginx-reload 4006
 
   echo ""
   echo "Starting Multi-Node network."
