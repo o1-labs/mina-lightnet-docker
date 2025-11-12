@@ -10,11 +10,32 @@ trap "killall background" EXIT
 RDBMS_PORT=5432
 ARCHIVE_NODE_API_PORT=8282
 ARCHIVE_NODE_API_LOG_FILE_PATH=${HOME}/logs/archive-node-api.log
-LEDGER_FOLDER="${HOME}/.mina-network/mina-local-network-2-1-1"
+SOURCE_DIR=${HOME}/mina-local-network
+
+
+if [[ $NETWORK_TYPE == "single-node" ]]; then
+  LEDGER_FOLDER="${HOME}/.mina-network/mina-local-network-demo"
+elif [[ $NETWORK_TYPE == "multi-node" ]]; then
+  LEDGER_FOLDER="${HOME}/.mina-network/mina-local-network-2-1-1"
+else
+  echo ""
+  echo "Unknown network type: $NETWORK_TYPE"
+  echo ""
+
+  exit 1
+fi
+
+echo ""
+echo "Copying the network configuration files to ${LEDGER_FOLDER} ..."
+echo ""
+
+cp -r ${SOURCE_DIR} ${LEDGER_FOLDER}
+
+
 GENESIS_LEDGER_CONFIG_FILE=${LEDGER_FOLDER}/daemon.json
 
 
-KEYS_FOR_PERMISSIONS_UPDATE=(${HOME}/.mina-network/mina-local-network-2-1-1/libp2p_keys ${HOME}/.mina-network/mina-local-network-2-1-1/offline_fish_keys ${HOME}/.mina-network/mina-local-network-2-1-1/offline_whale_keys ${HOME}/.mina-network/mina-local-network-2-1-1/online_fish_keys ${HOME}/.mina-network/mina-local-network-2-1-1/online_whale_keys ${HOME}/.mina-network/mina-local-network-2-1-1/service-keys ${HOME}/.mina-network/mina-local-network-2-1-1/snark_coordinator_keys ${HOME}/.mina-network/mina-local-network-2-1-1/zkapp_keys )
+KEYS_FOR_PERMISSIONS_UPDATE=(${LEDGER_FOLDER}/libp2p_keys ${LEDGER_FOLDER}/offline_fish_keys ${LEDGER_FOLDER}/offline_whale_keys ${LEDGER_FOLDER}/online_fish_keys ${LEDGER_FOLDER}/online_whale_keys ${LEDGER_FOLDER}/service-keys ${LEDGER_FOLDER}/snark_coordinator_keys ${LEDGER_FOLDER}/zkapp_keys )
 
 mkdir -p ${HOME}/logs || true
 
@@ -73,20 +94,6 @@ if [[ $RUN_ARCHIVE_NODE == "true" ]]; then
   start-archive-node-api
 fi
 
-if [[ $NETWORK_TYPE == "single-node" ]]; then
-  LEDGER_FOLDER="${HOME}/.mina-network/mina-local-network-2-1-1"
-elif [[ $NETWORK_TYPE == "multi-node" ]]; then
-  LEDGER_FOLDER="${HOME}/.mina-network/mina-local-network-demo"
-else
-  echo ""
-  echo "Unknown network type: $NETWORK_TYPE"
-  echo ""
-
-  exit 1
-fi
-
-GENESIS_LEDGER_CONFIG_FILE=${LEDGER_FOLDER}/daemon.json
-
 echo ""
 echo "Starting the Accounts-Manager service..."
 echo ""
@@ -112,10 +119,9 @@ if [[ $NETWORK_TYPE == "single-node" ]]; then
   echo "Starting Single-Node network."
   echo ""
 
-  bash ${HOME}/scripts/mina-local-network/mina-local-network.sh -sp 3100 --demo -u -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} --override-slot-time ${SLOT_TIME} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS}
+  bash ${HOME}/scripts/mina-local-network/mina-local-network.sh -sp 3100 --demo -u -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} --override-slot-time ${SLOT_TIME} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS} --archive-server-port 8282
 
-elif [[ $NETWORK_TYPE == "multi-node" ]]; then
-
+else
   #TODO: Find out why Nginx needs to be reloaded twice to work properly and why 4006 ?
   nginx-reload 4006
 
@@ -128,12 +134,6 @@ elif [[ $NETWORK_TYPE == "multi-node" ]]; then
   fi
 
   bash ${HOME}/scripts/mina-local-network/mina-local-network.sh -sp 3100 -w 2 -f 1 -n 1 -u -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} --override-slot-time ${SLOT_TIME} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS}
-else
-  echo ""
-  echo "Unknown network type: $NETWORK_TYPE"
-  echo ""
-
-  exit 1
 fi
 
 wait
