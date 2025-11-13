@@ -10,7 +10,7 @@ trap "killall background" EXIT
 RDBMS_PORT=5432
 ARCHIVE_NODE_API_PORT=8282
 ARCHIVE_NODE_API_LOG_FILE_PATH=${HOME}/logs/archive-node-api.log
-SOURCE_DIR=${HOME}/mina-local-network
+SOURCE_DIR=${HOME}/.mina-network/mina-local-network
 
 
 if [[ $NETWORK_TYPE == "single-node" ]]; then

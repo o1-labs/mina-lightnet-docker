@@ -174,7 +174,7 @@ function build-image() {
 
 
 TMP_FOLDER=$(mktemp -d)
-KEYS_LOCATION_TARGETS=(${TMP_FOLDER}/mina-local-network-2-1-1/nodes/fish_0/wallets/store/ ${TMP_FOLDER}/mina-local-network-2-1-1/nodes/node_0/wallets/store/ ${TMP_FOLDER}/mina-local-network-2-1-1/nodes/seed/wallets/store/ ${TMP_FOLDER}/mina-local-network-2-1-1/nodes/snark_coordinator/wallets/store/ ${TMP_FOLDER}/mina-local-network-2-1-1/nodes/snark_workers/worker_0/wallets/store/ ${TMP_FOLDER}/mina-local-network-2-1-1/nodes/whale_0/wallets/store/ ${TMP_FOLDER}/mina-local-network-2-1-1/nodes/whale_1/wallets/store/)
+KEYS_LOCATION_TARGETS=(${TMP_FOLDER}/mina-local-network/nodes/fish_0/wallets/store/ ${TMP_FOLDER}/mina-local-network/nodes/node_0/wallets/store/ ${TMP_FOLDER}/mina-local-network/nodes/seed/wallets/store/ ${TMP_FOLDER}/mina-local-network/nodes/snark_coordinator/wallets/store/ ${TMP_FOLDER}/mina-local-network/nodes/snark_workers/worker_0/wallets/store/ ${TMP_FOLDER}/mina-local-network/nodes/whale_0/wallets/store/ ${TMP_FOLDER}/mina-local-network/nodes/whale_1/wallets/store/)
 
 echo ""
 echo "[INFO] Architectures:                     ${ARCHS[*]}"
@@ -191,7 +191,7 @@ echo "[INFO] Working directory:                ${TMP_FOLDER}"
 echo ""
 
 echo "Preparing the filesystem..."
-cp -r ./configuration/mina-local-network-2-1-1 ${TMP_FOLDER}/
+cp -r ./configuration/mina-local-network ${TMP_FOLDER}/
 cp -r ./configuration/Dockerfile ${TMP_FOLDER}/
 cp -r ./configuration/nginx.conf ${TMP_FOLDER}/
 cp -r ./scripts/spinup-testnet.sh ${TMP_FOLDER}/
