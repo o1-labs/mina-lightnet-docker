@@ -12,7 +12,6 @@ ARCHIVE_NODE_PORT=3086
 ARCHIVE_NODE_API_PORT=8282
 ARCHIVE_NODE_API_LOG_FILE_PATH=${HOME}/logs/archive-node-api.log
 SOURCE_DIR=${HOME}/.mina-network/mina-local-network
-yh
 
 if [[ $NETWORK_TYPE == "single-node" ]]; then
   LEDGER_FOLDER="${HOME}/.mina-network/mina-local-network-demo"
