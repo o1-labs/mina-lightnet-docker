@@ -101,7 +101,7 @@ echo ""
 "accounts-manager" "${GENESIS_LEDGER_CONFIG_FILE}" 8181 3101 "naughty blue worm" &
 
 if [[ $RUN_ARCHIVE_NODE == "true" ]]; then
-    ARCHIVE_CLI_ARGS=" --archive --pg-user ${POSTGRES_USER} --pg-passwd ${POSTGR2ES_PASSWORD} --pg-db ${POSTGRES_DB}"
+    ARCHIVE_CLI_ARGS=" --archive --pg-user ${POSTGRES_USER} --pg-passwd ${POSTGRES_PASSWORD} --pg-db ${POSTGRES_DB}"
 else
     ARCHIVE_CLI_ARGS=""
 fi
