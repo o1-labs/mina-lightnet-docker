@@ -8,10 +8,11 @@ set -e
 trap "killall background" EXIT
 
 RDBMS_PORT=5432
+ARCHIVE_NODE_PORT=3086
 ARCHIVE_NODE_API_PORT=8282
 ARCHIVE_NODE_API_LOG_FILE_PATH=${HOME}/logs/archive-node-api.log
 SOURCE_DIR=${HOME}/.mina-network/mina-local-network
-
+yh
 
 if [[ $NETWORK_TYPE == "single-node" ]]; then
   LEDGER_FOLDER="${HOME}/.mina-network/mina-local-network-demo"
@@ -101,7 +102,7 @@ echo ""
 "accounts-manager" "${GENESIS_LEDGER_CONFIG_FILE}" 8181 3101 "naughty blue worm" &
 
 if [[ $RUN_ARCHIVE_NODE == "true" ]]; then
-    ARCHIVE_CLI_ARGS=" --archive --pg-user ${POSTGRES_USER} --pg-passwd ${POSTGRES_PASSWORD} --pg-db ${POSTGRES_DB}"
+    ARCHIVE_CLI_ARGS=" --archive --pg-user ${POSTGRES_USER} --pg-passwd ${POSTGR2ES_PASSWORD} --pg-db ${POSTGRES_DB}"
 else
     ARCHIVE_CLI_ARGS=""
 fi
@@ -119,7 +120,7 @@ if [[ $NETWORK_TYPE == "single-node" ]]; then
   echo "Starting Single-Node network."
   echo ""
 
-  bash ${HOME}/scripts/mina-local-network/mina-local-network.sh -sp 3100 --demo -u -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} --override-slot-time ${SLOT_TIME} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS} --archive-server-port 8282
+  bash ${HOME}/scripts/mina-local-network/mina-local-network.sh -sp 3100 --demo -u -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} --override-slot-time ${SLOT_TIME} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS} --archive-server-port ${ARCHIVE_NODE_PORT}
 
 else
   #TODO: Find out why Nginx needs to be reloaded twice to work properly and why 4006 ?
@@ -133,7 +134,7 @@ else
     ARCHIVE_CLI_ARGS=" --archive --pg-user ${POSTGRES_USER} --pg-passwd ${POSTGRES_PASSWORD} --pg-db ${POSTGRES_DB}"
   fi
 
-  bash ${HOME}/scripts/mina-local-network/mina-local-network.sh -sp 3100 -w 2 -f 1 -n 1 -u -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} --override-slot-time ${SLOT_TIME} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS}
+  bash ${HOME}/scripts/mina-local-network/mina-local-network.sh -sp 3100 -w 2 -f 1 -n 1 -u -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} --override-slot-time ${SLOT_TIME} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS} --archive-server-port ${ARCHIVE_NODE_PORT}
 fi
 
 wait
