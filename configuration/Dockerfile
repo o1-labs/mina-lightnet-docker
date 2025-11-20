@@ -3,7 +3,7 @@ FROM postgres:14-bookworm
 ARG MINA_BRANCH=develop
 ARG MINA_REPO=https://nightly.apt.packages.minaprotocol.com
 ARG MINA_ACCOUNTS_MANAGER_VERSION=0.1.1
-ARG ARCHIVE_NODE_API_VERSION=1.0.0
+ARG ARCHIVE_NODE_API_VERSION=0.0.1
 ARG MINA_PROFILE=devnet
 
 RUN apt update && apt install -y --no-install-recommends python3 python3-pip jq wget curl psmisc libpq-dev libjemalloc-dev libffi-dev nginx netcat-traditional && apt clean && rm -rf /var/lib/apt/lists/*
@@ -51,10 +51,8 @@ RUN wget -q ${MINA_REPO}/repo-signing-key.gpg -O /etc/apt/trusted.gpg.d/minaprot
 RUN rm -f /var/lib/coda/config_*.json
 
 # install Archive Node API
-RUN  wget https://github.com/o1-labs/Archive-Node-API/releases/download/v${ARCHIVE_NODE_API_VERSION}/archive-node-graphql-${ARCHIVE_NODE_API_VERSION}-linux-${TARGETARCH}.tgz \
-        && tar -xzf archive-node-graphql-${ARCHIVE_NODE_API_VERSION}-linux-${TARGETARCH}.tgz \
-        && npm install -g archive-node-graphql-${ARCHIVE_NODE_API_VERSION}-linux-${TARGETARCH}.tgz \
-        && rm archive-node-graphql-${ARCHIVE_NODE_API_VERSION}-linux-${TARGETARCH}.tgz
+RUN  npm config set registry https://europe-southwest1-npm.pkg.dev/o1labs-192920/euro-npm/ \
+        && npm install -g archive-node-graphql@${ARCHIVE_NODE_API_VERSION}
 
 # install Mina Accounts Manager
 RUN wget https://github.com/shimkiv/mina-accounts-manager/releases/download/v${MINA_ACCOUNTS_MANAGER_VERSION}/accounts-manager-${TARGETARCH} \
