@@ -55,7 +55,7 @@ RUN printf '%s\n' \
   'registry=https://registry.npmjs.org/' \
   '@o1labs:registry=https://europe-southwest1-npm.pkg.dev/o1labs-192920/euro-npm/' \
   > /root/.npmrc \
- && npm install -g @o1labs/archive-node-graphql@${ARCHIVE_NODE_API_VERSION} \
+ && npm install -g archive-node-graphql@${ARCHIVE_NODE_API_VERSION} \
  && rm /root/.npmrc
 
 # install Mina Accounts Manager
