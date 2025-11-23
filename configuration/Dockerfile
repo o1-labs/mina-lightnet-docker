@@ -51,12 +51,9 @@ RUN wget -q ${MINA_REPO}/repo-signing-key.gpg -O /etc/apt/trusted.gpg.d/minaprot
 RUN rm -f /var/lib/coda/config_*.json
 
 # install Archive Node API
-RUN printf '%s\n' \
-  'registry=https://registry.npmjs.org/' \
-  '@o1labs:registry=https://europe-southwest1-npm.pkg.dev/o1labs-192920/euro-npm/' \
-  > /root/.npmrc \
- && npm install -g archive-node-graphql@${ARCHIVE_NODE_API_VERSION} \
- && rm /root/.npmrc
+ARG ARCHIVE_NODE_API_TARBALL_URL="https://europe-southwest1-npm.pkg.dev/o1labs-192920/euro-npm/archive-node-graphql/-/archive-node-graphql-${ARCHIVE_NODE_API_VERSION}.tgz"
+
+RUN npm install -g "${ARCHIVE_NODE_API_TARBALL_URL}"
 
 # install Mina Accounts Manager
 RUN wget https://github.com/shimkiv/mina-accounts-manager/releases/download/v${MINA_ACCOUNTS_MANAGER_VERSION}/accounts-manager-${TARGETARCH} \
