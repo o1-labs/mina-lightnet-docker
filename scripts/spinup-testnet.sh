@@ -11,25 +11,11 @@ RDBMS_PORT=5432
 ARCHIVE_NODE_PORT=3086
 ARCHIVE_NODE_API_PORT=8282
 ARCHIVE_NODE_API_LOG_FILE_PATH=${HOME}/logs/archive-node-api.log
-SOURCE_DIR=${HOME}/.mina-network/mina-local-network
-
-if [[ $NETWORK_TYPE == "single-node" ]]; then
-  LEDGER_FOLDER="${HOME}/.mina-network/mina-local-network-demo"
-elif [[ $NETWORK_TYPE == "multi-node" ]]; then
-  LEDGER_FOLDER="${HOME}/.mina-network/mina-local-network-2-1-1"
-else
-  echo ""
-  echo "Unknown network type: $NETWORK_TYPE"
-  echo ""
-
-  exit 1
-fi
+LEDGER_FOLDER="${HOME}/.mina-network"
 
 echo ""
-echo "Copying the network configuration files to ${LEDGER_FOLDER} ..."
+echo "The network configuration files are located at ${LEDGER_FOLDER} ..."
 echo ""
-
-cp -r ${SOURCE_DIR} ${LEDGER_FOLDER}
 
 
 GENESIS_LEDGER_CONFIG_FILE=${LEDGER_FOLDER}/daemon.json
@@ -119,7 +105,7 @@ if [[ $NETWORK_TYPE == "single-node" ]]; then
   echo "Starting Single-Node network."
   echo ""
 
-  bash ${HOME}/scripts/mina-local-network/mina-local-network.sh -sp 3100 --demo -u -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} --override-slot-time ${SLOT_TIME} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS} --archive-server-port ${ARCHIVE_NODE_PORT}
+  bash ${HOME}/scripts/mina-local-network/mina-local-network.sh -sp 3100 --demo --config inherit -u delay_sec:0 -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} --override-slot-time ${SLOT_TIME} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS} --archive-server-port ${ARCHIVE_NODE_PORT}
 
 else
   #TODO: Find out why Nginx needs to be reloaded twice to work properly and why 4006 ?
@@ -133,7 +119,7 @@ else
     ARCHIVE_CLI_ARGS=" --archive --pg-user ${POSTGRES_USER} --pg-passwd ${POSTGRES_PASSWORD} --pg-db ${POSTGRES_DB}"
   fi
 
-  bash ${HOME}/scripts/mina-local-network/mina-local-network.sh -sp 3100 -w 2 -f 1 -n 1 -u -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} --override-slot-time ${SLOT_TIME} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS} --archive-server-port ${ARCHIVE_NODE_PORT}
+  bash ${HOME}/scripts/mina-local-network/mina-local-network.sh -sp 3100 -w 2 -f 1 -n 1  --config inherit -u delay_sec:0 -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} --override-slot-time ${SLOT_TIME} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS} --archive-server-port ${ARCHIVE_NODE_PORT}
 fi
 
 wait

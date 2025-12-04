@@ -5,18 +5,25 @@ ARG MINA_REPO=https://nightly.apt.packages.minaprotocol.com
 ARG MINA_ACCOUNTS_MANAGER_VERSION=0.1.1
 ARG ARCHIVE_NODE_API_VERSION=0.0.1
 ARG MINA_PROFILE=devnet
+# Extra profile like lightnet
+ARG MINA_EXTRA_PROFILE
+
+
 
 RUN apt update && apt install -y --no-install-recommends python3 python3-pip jq wget curl psmisc libpq-dev libjemalloc-dev libffi-dev nginx netcat-traditional && apt clean && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_VERSION=20.11.1
 ARG TARGETARCH
 
+# Build MINA debian package name
+env MINA_DEB_NAME="mina-${MINA_PROFILE}${MINA_EXTRA_PROFILE:+-$MINA_EXTRA_PROFILE}"
+
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs=${NODE_VERSION}-1nodesource1 \
     && node --version \
     && npm --version
 
-COPY ./configuration/mina-local-network/ /root/.mina-network/mina-local-network/
+COPY ./configuration/mina-local-network/ /root/.mina-network/
 COPY ./configuration/nginx.conf /root/
 
 COPY ./scripts/spinup-testnet.sh /root/
@@ -28,9 +35,11 @@ RUN chmod +x /root/wait-for-network.sh
 # download mina-local-network.sh script
 RUN mkdir -p /root/scripts/mina-local-network
 
-RUN wget https://raw.githubusercontent.com/MinaProtocol/mina/compatible/scripts/mina-local-network/mina-local-network.sh -O /root/scripts/mina-local-network/mina-local-network.sh
-RUN wget https://raw.githubusercontent.com/MinaProtocol/mina/compatible/scripts/mina-local-network/generate-mina-local-network-ledger.py -O /root/scripts/mina-local-network/generate-mina-local-network-ledger.py
-RUN wget https://raw.githubusercontent.com/MinaProtocol/mina/compatible/scripts/mina-local-network/requirements.txt -O /root/scripts/mina-local-network/requirements.txt
+ENV MINA_COMMIT=aa93c44428e7c73cd7b77900634522108b746d18
+
+RUN wget https://raw.githubusercontent.com/MinaProtocol/mina/${MINA_COMMIT}/scripts/mina-local-network/mina-local-network.sh -O /root/scripts/mina-local-network/mina-local-network.sh
+RUN wget https://raw.githubusercontent.com/MinaProtocol/mina/${MINA_COMMIT}/scripts/mina-local-network/generate-mina-local-network-ledger.py -O /root/scripts/mina-local-network/generate-mina-local-network-ledger.py
+RUN wget https://raw.githubusercontent.com/MinaProtocol/mina/${MINA_COMMIT}/scripts/mina-local-network/requirements.txt -O /root/scripts/mina-local-network/requirements.txt
 
 RUN chmod +x /root/scripts/mina-local-network/mina-local-network.sh
 RUN chmod +x /root/scripts/mina-local-network/generate-mina-local-network-ledger.py
@@ -41,7 +50,7 @@ RUN pip3 install --no-cache-dir --break-system-packages -r /root/scripts/mina-lo
 RUN wget -q ${MINA_REPO}/repo-signing-key.gpg -O /etc/apt/trusted.gpg.d/minaprotocol.gpg \
     && echo "deb ${MINA_REPO} bookworm ${MINA_BRANCH}" | tee /etc/apt/sources.list.d/mina.list \
     && apt update \
-    && apt install -y --no-install-recommends mina-logproc mina-${MINA_PROFILE} mina-archive-devnet \
+    && apt install -y --no-install-recommends mina-logproc ${MINA_DEB_NAME} mina-archive-${MINA_PROFILE} \
     && apt clean \
     && rm -rf /var/lib/apt/lists/*
 

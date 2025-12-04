@@ -11,7 +11,10 @@ PROOF_LEVEL="full"
 DOCKER_HUB_USER_NAME=""
 DOCKER_HUB_IMAGE_TAG=""
 ACCOUNTS_MANAGER_VERSION="v1.0.0"
+MINA_PROFILE="devnet"
+MINA_EXTRA_PROFILE=""
 PUSH=1
+NO_CACHE=0
 
 # Function to display usage
 usage() {
@@ -25,8 +28,11 @@ usage() {
   echo "  -p, --proof-level LEVEL               Proof level (required)"
   echo "  -u, --docker-user USER                Docker Hub user name (required)"
   echo "  -t, --tag TAG                         Docker Hub image tag (required)"
+  echo "      --mina-profile PROFILE            Mina profile (optional, default: devnet)"
+  echo "      --mina-extra-profile EXTRA_PROFILE Extra Mina profile (optional)"
   echo "  -c, --accounts-manager-version PATH   Accounts-Manager version (optional)"
   echo "  -s, --skip-push                       Skip pushing the image to Docker Hub (optional, default: false)"
+  echo "      --no-cache                        Disable Docker build cache (optional, default: false)"
   echo "  -h, --help                            Display this help message"
   echo ""
   echo "Example:"
@@ -56,6 +62,10 @@ while [[ $# -gt 0 ]]; do
       MINA_PROFILE="$2"
       shift 2
       ;;
+    --mina-extra-profile)
+      MINA_EXTRA_PROFILE="$2"
+      shift 2
+      ;;
     -p|--proof-level)
       PROOF_LEVEL="$2"
       shift 2
@@ -74,6 +84,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     -s|--skip-push)
       PUSH=0
+      shift 1
+      ;;
+    --no-cache)
+      NO_CACHE=1
       shift 1
       ;;
     -h|--help)
@@ -180,7 +194,17 @@ else
   PUSH_FLAG="--load"
 fi
 
-docker buildx build --platform ${PLATFORMS} ${PUSH_FLAG} -t ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG} --build-arg="MINA_PROFILE=${MINA_PROFILE}" --build-arg="MINA_REPO=${MINA_REPO}" --build-arg="MINA_BRANCH=${MINA_BRANCH}" --build-arg="ARCHIVE_NODE_API_TAG=${ARCHIVE_NODE_API_VERSION}" --build-arg="MINA_ACCOUNTS_MANAGER_VERSION=${ACCOUNTS_MANAGER_VERSION}" --build-arg="PROOF_LEVEL=${PROOF_LEVEL}" . -f configuration/Dockerfile
+EXTRA_PROFILE_ARG=""
+if [[ -n "$MINA_EXTRA_PROFILE" ]]; then
+  EXTRA_PROFILE_ARG="--build-arg=MINA_EXTRA_PROFILE=${MINA_EXTRA_PROFILE}"
+fi
+
+NO_CACHE_ARG=""
+if [[ $NO_CACHE -eq 1 ]]; then
+  NO_CACHE_ARG="--no-cache"
+fi
+
+docker buildx build --platform ${PLATFORMS} ${PUSH_FLAG} ${NO_CACHE_ARG} -t ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG} --build-arg="MINA_PROFILE=${MINA_PROFILE}" --build-arg="MINA_REPO=${MINA_REPO}" --build-arg="MINA_BRANCH=${MINA_BRANCH}" --build-arg="ARCHIVE_NODE_API_TAG=${ARCHIVE_NODE_API_VERSION}" --build-arg="MINA_ACCOUNTS_MANAGER_VERSION=${ACCOUNTS_MANAGER_VERSION}" --build-arg="PROOF_LEVEL=${PROOF_LEVEL}" ${EXTRA_PROFILE_ARG} . -f configuration/Dockerfile
 
 END=$(date +%s)
 RUNTIME=$((END-START))

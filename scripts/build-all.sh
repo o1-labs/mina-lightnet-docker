@@ -13,9 +13,15 @@ MINA_RELEASE="stable"
 TARGET_BRANCHES=()
 PUSH=1
 EXTRA_DOCKER_SUFFIX=""
+NO_CACHE=0
 
 # Define allowed values for MINA_RELEASE (enum-like behavior)
 ALLOWED_MINA_RELEASES=("stable" "nightly" "alpha" "beta")
+
+# Define standard Mina branches
+# These are the branches considered standard for Mina development
+# and they don't require special handling, like specifying profile different than devnet.
+STANDARD_MINA_BRANCHES=("develop" "compatible" "master")
 
 usage() {
   echo "Usage: $0 [OPTIONS]"
@@ -29,6 +35,7 @@ usage() {
   echo "  --docker-hub-user USER                       Docker Hub username (required)"
   echo "  --skip-push                                  Skip pushing images to Docker Hub"
   echo "  --extra-docker-suffix SUFFIX                 Extra suffix to append to Docker image tags"
+  echo "  --no-cache                                   Disable Docker build cache"
   echo "  -h, --help                                   Show this help message"
 }
 
@@ -87,6 +94,10 @@ while [[ $# -gt 0 ]]; do
       EXTRA_DOCKER_SUFFIX="$2"
       shift 2
       ;;
+    --no-cache)
+      NO_CACHE=1
+      shift
+      ;;
     -h|--help)
       usage
       ;;
@@ -132,15 +143,35 @@ function build-image() {
     local branch_name_arg="--mina-branch ${branch_name}"
   fi
 
+ 
+
   # Construct tag suffix
   local tag_suffix=""
   if [[ -n "$EXTRA_DOCKER_SUFFIX" ]]; then
     tag_suffix="-${EXTRA_DOCKER_SUFFIX}"
   fi
 
+  # Determine profile names based on branch
+  local profile_devnet="devnet"
+  local profile_lightnet="lightnet"
+  if [[ -n "$branch_name" ]]; then
+    local is_standard=0
+    for std_branch in "${STANDARD_MINA_BRANCHES[@]}"; do
+      if [[ "$branch_name" == "$std_branch" ]]; then
+        is_standard=1
+        break
+      fi
+    done
+    if [[ $is_standard -eq 0 ]]; then
+      profile_devnet="$branch_name"
+    fi
+  fi
+
   echo ""
-  echo "[INFO] For Devnet dune profile..."
+  echo "[INFO] For $profile_devnet profile..."
   echo ""
+
+  NO_CACHE_ARG=$(if [[ $NO_CACHE -eq 1 ]]; then echo "--no-cache"; else echo ""; fi)
 
   # shellcheck disable=SC2046
   SKIP_ARG=$(if [[ $PUSH -eq 1 ]]; then echo ""; else echo "--skip-push"; fi)
@@ -148,28 +179,28 @@ function build-image() {
       --mina-release "${MINA_RELEASE}" \
       --archive-api-version "${ARCHIVE_NODE_API_VERSION}" \
       --proof-level full \
-      --mina-profile devnet \
+      --mina-profile "$profile_devnet" \
       ${branch_name_arg} \
       --docker-user "${DOCKER_HUB_USER_NAME}" \
       --tag "${branch_name}-latest-devnet${tag_suffix}" \
       --accounts-manager-version "${MINA_ACCOUNTS_MANAGER_VERSION}" \
-      ${SKIP_ARG}
-
+      ${SKIP_ARG} ${NO_CACHE_ARG}
 
   echo ""
-  echo "[INFO] For Lightnet dune profile..."
+  echo "[INFO] For $profile_lightnet profile..."
   echo ""
 
   "${DOCKER_IMAGE_BUILDING_SCRIPTS_REPO_DIR}scripts/build-image.sh" --archs "${archs}" \
       --mina-release "${MINA_RELEASE}" \
       --archive-api-version "${ARCHIVE_NODE_API_VERSION}" \
       --proof-level none \
-      --mina-profile devnet-lightnet \
+      --mina-profile "$profile_devnet" \
+      --mina-extra-profile "$profile_lightnet" \
       ${branch_name_arg} \
       --docker-user "${DOCKER_HUB_USER_NAME}" \
       --tag "${branch_name}-latest-lightnet${tag_suffix}" \
       --accounts-manager-version "${MINA_ACCOUNTS_MANAGER_VERSION}" \
-      ${SKIP_ARG}
+      ${SKIP_ARG} ${NO_CACHE_ARG}
 }
 
 
