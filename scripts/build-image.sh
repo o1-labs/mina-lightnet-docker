@@ -6,7 +6,7 @@ set -euo pipefail
 ARCHS=""
 MINA_RELEASE="stable"
 MINA_BRANCH=""
-ARCHIVE_NODE_API_VERSION="1.0.0"
+ARCHIVE_NODE_API_VERSION="0.0.8"
 PROOF_LEVEL="full"
 DOCKER_HUB_USER_NAME=""
 DOCKER_HUB_IMAGE_TAG=""
@@ -140,11 +140,6 @@ fi
 START=$(date +%s)
 
 case $MINA_RELEASE in
-  "stable")
-    echo "Using STABLE Mina release."
-    MINA_REPO="https://stable.apt.packages.minaprotocol.com"
-    MINA_BRANCH="stable"
-    ;;
   "nightly")
     echo "Using NIGHTLY Mina release."
     MINA_REPO="https://nightly.apt.packages.minaprotocol.com"
@@ -183,17 +178,6 @@ echo ""
 docker rmi -f ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG} || true
 docker rmi -f mina-local-network || true
 
-if [[ $PUSH -eq 1 ]]; then
-  echo ""
-  echo "Publishing the Docker image..."
-  PUSH_FLAG="--push"
-else
-  echo ""
-  echo "Skipping the Docker image publishing step as requested."
-  echo ""
-  PUSH_FLAG="--load"
-fi
-
 EXTRA_PROFILE_ARG=""
 if [[ -n "$MINA_EXTRA_PROFILE" ]]; then
   EXTRA_PROFILE_ARG="--build-arg=MINA_EXTRA_PROFILE=${MINA_EXTRA_PROFILE}"
@@ -204,7 +188,37 @@ if [[ $NO_CACHE -eq 1 ]]; then
   NO_CACHE_ARG="--no-cache"
 fi
 
-docker buildx build --platform ${PLATFORMS} ${PUSH_FLAG} ${NO_CACHE_ARG} -t ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG} --build-arg="MINA_PROFILE=${MINA_PROFILE}" --build-arg="MINA_REPO=${MINA_REPO}" --build-arg="MINA_BRANCH=${MINA_BRANCH}" --build-arg="ARCHIVE_NODE_API_TAG=${ARCHIVE_NODE_API_VERSION}" --build-arg="MINA_ACCOUNTS_MANAGER_VERSION=${ACCOUNTS_MANAGER_VERSION}" --build-arg="PROOF_LEVEL=${PROOF_LEVEL}" ${EXTRA_PROFILE_ARG} . -f configuration/Dockerfile
+if [[ $PUSH -eq 1 ]]; then
+  echo ""
+  echo "Publishing the Docker image..."
+  echo ""
+  docker buildx build --platform ${PLATFORMS} --push ${NO_CACHE_ARG} -t ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG} --build-arg="MINA_PROFILE=${MINA_PROFILE}" --build-arg="MINA_REPO=${MINA_REPO}" --build-arg="MINA_BRANCH=${MINA_BRANCH}" --build-arg="ARCHIVE_NODE_API_TAG=${ARCHIVE_NODE_API_VERSION}" --build-arg="MINA_ACCOUNTS_MANAGER_VERSION=${ACCOUNTS_MANAGER_VERSION}" --build-arg="PROOF_LEVEL=${PROOF_LEVEL}" ${EXTRA_PROFILE_ARG} . -f configuration/Dockerfile
+else
+  echo ""
+  echo "Skipping the Docker image publishing step as requested."
+  echo ""
+
+  # Detect current architecture
+  CURRENT_ARCH=$(uname -m)
+  case "$CURRENT_ARCH" in
+    x86_64)
+      DETECTED_ARCH="amd64"
+      ;;
+    aarch64|arm64)
+      DETECTED_ARCH="arm64"
+      ;;
+    *)
+      echo "Warning: Unknown architecture $CURRENT_ARCH, defaulting to amd64"
+      DETECTED_ARCH="amd64"
+      ;;
+  esac
+
+  echo "Detected architecture: $DETECTED_ARCH (system: $CURRENT_ARCH)"
+  echo "Building only for current architecture to enable local loading..."
+  echo ""
+
+  docker buildx build --platform linux/${DETECTED_ARCH} --load ${NO_CACHE_ARG} -t ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG} --build-arg="MINA_PROFILE=${MINA_PROFILE}" --build-arg="MINA_REPO=${MINA_REPO}" --build-arg="MINA_BRANCH=${MINA_BRANCH}" --build-arg="ARCHIVE_NODE_API_TAG=${ARCHIVE_NODE_API_VERSION}" --build-arg="MINA_ACCOUNTS_MANAGER_VERSION=${ACCOUNTS_MANAGER_VERSION}" --build-arg="PROOF_LEVEL=${PROOF_LEVEL}" ${EXTRA_PROFILE_ARG} . -f configuration/Dockerfile
+fi
 
 END=$(date +%s)
 RUNTIME=$((END-START))

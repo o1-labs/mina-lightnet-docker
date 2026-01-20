@@ -5,18 +5,23 @@ set -e
 
 # Parse command line arguments
 ARCHS="amd64"
-ARCHIVE_NODE_API_VERSION="1.0.0"
+ARCHIVE_NODE_API_VERSION="0.0.8"
 DOCKER_IMAGE_BUILDING_SCRIPTS_REPO_DIR="./"
 MINA_ACCOUNTS_MANAGER_VERSION="0.1.1"
 DOCKER_HUB_USER_NAME=""
-MINA_RELEASE="stable"
 TARGET_BRANCHES=()
 PUSH=1
 EXTRA_DOCKER_SUFFIX=""
 NO_CACHE=0
 
 # Define allowed values for MINA_RELEASE (enum-like behavior)
-ALLOWED_MINA_RELEASES=("stable" "nightly" "alpha" "beta")
+# Since devnet profile is not promoted to stable release, we limit the allowed values.
+# Nightly -> represents cutting edge builds from develop branch
+# Alpha   -> represents pre-release builds for testing
+# Beta    -> represents release candidate builds for final verification, which usually precede stable releases.
+ALLOWED_MINA_RELEASES=("nightly" "alpha" "beta")
+
+MINA_RELEASE=${ALLOWED_MINA_RELEASES[0]}
 
 # Define standard Mina branches
 # These are the branches considered standard for Mina development
@@ -110,6 +115,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Validate required arguments
+
 if [[ -z "$ARCHIVE_NODE_API_VERSION" ]]; then
   echo "Error: Missing required argument --archive-api-version"
   usage
@@ -130,6 +136,19 @@ elif ! is_valid_mina_release "$MINA_RELEASE"; then
   usage
   exit 1
 fi
+
+# Additional condition: when MINA_RELEASE is not 'nightly', TARGET_BRANCHES can only be 'master'
+if [[ "$MINA_RELEASE" != "nightly" ]]; then
+  for branch in "${TARGET_BRANCHES[@]}"; do
+    if [[ "$branch" != "master" ]]; then
+      echo "Error: When --mina-release is not 'nightly', --target-branches can only be 'master'. Found: $branch"
+      usage
+      exit 1
+    fi
+  done
+fi
+
+
 
 START=$(date +%s)
 
@@ -238,7 +257,7 @@ if [[ "$MINA_RELEASE" == "nightly" ]]; then
     build-image "$branch" "${ARCHS[@]}"
   done
 else
-  build-image "" "${ARCHS[@]}"
+  build-image "master" "${ARCHS[@]}"
 fi
 
 echo ""

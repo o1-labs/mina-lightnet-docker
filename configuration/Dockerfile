@@ -3,23 +3,34 @@ FROM postgres:14-bookworm
 ARG MINA_BRANCH=develop
 ARG MINA_REPO=https://nightly.apt.packages.minaprotocol.com
 ARG MINA_ACCOUNTS_MANAGER_VERSION=0.1.1
-ARG ARCHIVE_NODE_API_VERSION=0.0.1
+ARG ARCHIVE_NODE_API_VERSION=0.0.8
 ARG MINA_PROFILE=devnet
 # Extra profile like lightnet
 ARG MINA_EXTRA_PROFILE
-
-
-
-RUN apt update && apt install -y --no-install-recommends python3 python3-pip jq wget curl psmisc libpq-dev libjemalloc-dev libffi-dev nginx netcat-traditional && apt clean && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_VERSION=20.11.1
 ARG TARGETARCH
 
 # Build MINA debian package name
-env MINA_DEB_NAME="mina-${MINA_PROFILE}${MINA_EXTRA_PROFILE:+-$MINA_EXTRA_PROFILE}"
+ENV MINA_DEB_NAME="mina-${MINA_PROFILE}${MINA_EXTRA_PROFILE:+-$MINA_EXTRA_PROFILE}"
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    jq \
+    curl \
+    psmisc \
+    libpq-dev \
+    libjemalloc-dev \
+    libffi-dev \
+    nginx \
+    netcat-traditional \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# install Node.js
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs=${NODE_VERSION}-1nodesource1 \
+    && apt-get install -y --no-install-recommends nodejs=${NODE_VERSION}-1nodesource1 \
     && node --version \
     && npm --version
 
@@ -32,26 +43,24 @@ RUN chmod +x /root/spinup-testnet.sh
 COPY ./scripts/wait-for-network.sh /root/
 RUN chmod +x /root/wait-for-network.sh
 
+ENV MINA_COMMIT=aa93c44428e7c73cd7b77900634522108b746d18
+
 # download mina-local-network.sh script
 RUN mkdir -p /root/scripts/mina-local-network
 
-ENV MINA_COMMIT=aa93c44428e7c73cd7b77900634522108b746d18
-
-RUN wget https://raw.githubusercontent.com/MinaProtocol/mina/${MINA_COMMIT}/scripts/mina-local-network/mina-local-network.sh -O /root/scripts/mina-local-network/mina-local-network.sh
-RUN wget https://raw.githubusercontent.com/MinaProtocol/mina/${MINA_COMMIT}/scripts/mina-local-network/generate-mina-local-network-ledger.py -O /root/scripts/mina-local-network/generate-mina-local-network-ledger.py
-RUN wget https://raw.githubusercontent.com/MinaProtocol/mina/${MINA_COMMIT}/scripts/mina-local-network/requirements.txt -O /root/scripts/mina-local-network/requirements.txt
-
-RUN chmod +x /root/scripts/mina-local-network/mina-local-network.sh
-RUN chmod +x /root/scripts/mina-local-network/generate-mina-local-network-ledger.py
-
-RUN pip3 install --no-cache-dir --break-system-packages -r /root/scripts/mina-local-network/requirements.txt
+RUN curl -fsSL https://raw.githubusercontent.com/MinaProtocol/mina/${MINA_COMMIT}/scripts/mina-local-network/mina-local-network.sh -o /root/scripts/mina-local-network/mina-local-network.sh \
+    && curl -fsSL https://raw.githubusercontent.com/MinaProtocol/mina/${MINA_COMMIT}/scripts/mina-local-network/generate-mina-local-network-ledger.py -o /root/scripts/mina-local-network/generate-mina-local-network-ledger.py \
+    && curl -fsSL https://raw.githubusercontent.com/MinaProtocol/mina/${MINA_COMMIT}/scripts/mina-local-network/requirements.txt -o /root/scripts/mina-local-network/requirements.txt \
+    && chmod +x /root/scripts/mina-local-network/mina-local-network.sh \
+    && chmod +x /root/scripts/mina-local-network/generate-mina-local-network-ledger.py \
+    && pip3 install --no-cache-dir --break-system-packages -r /root/scripts/mina-local-network/requirements.txt
 
 # install mina
-RUN wget -q ${MINA_REPO}/repo-signing-key.gpg -O /etc/apt/trusted.gpg.d/minaprotocol.gpg \
+RUN curl -fsSL ${MINA_REPO}/repo-signing-key.gpg -o /etc/apt/trusted.gpg.d/minaprotocol.gpg \
     && echo "deb ${MINA_REPO} bookworm ${MINA_BRANCH}" | tee /etc/apt/sources.list.d/mina.list \
-    && apt update \
-    && apt install -y --no-install-recommends mina-logproc ${MINA_DEB_NAME} mina-archive-${MINA_PROFILE} \
-    && apt clean \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends mina-logproc ${MINA_DEB_NAME} mina-archive-${MINA_PROFILE} \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # remove magic config files (it makes sense for artificial testnet only, like the one we are going to spin up)
@@ -59,13 +68,11 @@ RUN wget -q ${MINA_REPO}/repo-signing-key.gpg -O /etc/apt/trusted.gpg.d/minaprot
 # that will not be valid for other networks
 RUN rm -f /var/lib/coda/config_*.json
 
-# install Archive Node API
-ARG ARCHIVE_NODE_API_TARBALL_URL="https://europe-southwest1-npm.pkg.dev/o1labs-192920/euro-npm/archive-node-graphql/-/archive-node-graphql-${ARCHIVE_NODE_API_VERSION}.tgz"
-
-RUN npm install -g "${ARCHIVE_NODE_API_TARBALL_URL}"
+# install Mina Archive Node GraphQL API from npm registry
+RUN npm install -g mina-archive-node-graphql@${ARCHIVE_NODE_API_VERSION}
 
 # install Mina Accounts Manager
-RUN wget https://github.com/shimkiv/mina-accounts-manager/releases/download/v${MINA_ACCOUNTS_MANAGER_VERSION}/accounts-manager-${TARGETARCH} \
+RUN curl -fsSL https://github.com/shimkiv/mina-accounts-manager/releases/download/v${MINA_ACCOUNTS_MANAGER_VERSION}/accounts-manager-${TARGETARCH} -o accounts-manager-${TARGETARCH} \
     && chmod +x accounts-manager-${TARGETARCH} \
     && mv accounts-manager-${TARGETARCH} /usr/local/bin/accounts-manager
 
