@@ -1,5 +1,13 @@
 name: Build and publish Mina lightweight network Docker images
 on:
+  push:
+    branches:
+      - develop
+      - main
+  pull_request:
+    branches:
+      - develop
+      - main
   workflow_dispatch: {}
 jobs:
   build-and-publish:
@@ -11,9 +19,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Login to Docker Hub
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-      - name: Build Docker images and push to Docker Hub
-        run: ./scripts/build-all.sh --mina-release nightly --target-branches develop,compatible,master --archs amd64,arm64 --docker-hub-user o1labs --extra-docker-suffix experimental
+      - name: Build Docker images
+        if: github.event_name == 'pull_request'
+        run: ./scripts/build-all.sh --mina-release nightly --target-branches develop,compatible,master --archs amd64,arm64 --docker-hub-user o1labs --skip-push
+      - name: Build and push Docker images
+        if: github.event_name != 'pull_request'
+        run: ./scripts/build-all.sh --mina-release nightly --target-branches develop,compatible,master --archs amd64,arm64 --docker-hub-user o1labs
