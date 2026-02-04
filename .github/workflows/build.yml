@@ -1,9 +1,5 @@
 name: Build and publish Mina lightweight network Docker images
 on:
-  push:
-    branches: ['**']
-  schedule:
-    - cron: "30 1 * * *"
   workflow_dispatch: {}
 jobs:
   build-and-publish:
