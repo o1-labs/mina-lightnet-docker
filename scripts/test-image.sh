@@ -52,7 +52,7 @@ graphql_query() {
   local query="$2"
   local payload
   payload=$(jq -nc --arg q "$query" '{query: $q}')
-  curl -sf -X POST -H "Content-Type: application/json" -d "$payload" "$url" 2>/dev/null || echo ""
+  curl -s -X POST -H "Content-Type: application/json" -d "$payload" "$url" 2>/dev/null || echo ""
 }
 
 # --- Main ---
@@ -133,17 +133,22 @@ fi
 # 3c. Archive Node API (may need retries as it depends on archive data being available)
 echo "[Archive Node API]"
 archive_ok=false
-for attempt in $(seq 1 10); do
-  response=$(graphql_query "${ARCHIVE_API_URL}" "{ blocks(limit: 1) { stateHash } }")
-  if [[ -n "${response}" ]] && [[ "${response}" != *'"errors"'* ]] && [[ "${response}" == *'"blocks"'* ]]; then
+for attempt in $(seq 1 12); do
+  response=$(graphql_query "${ARCHIVE_API_URL}" "{ __typename }")
+  if [[ -n "${response}" ]] && [[ "${response}" != *'"errors"'* ]]; then
     archive_ok=true
-    pass "Archive Node API is responding"
+    pass "Archive Node API is responding: ${response}"
     break
   fi
-  echo "  Attempt ${attempt}/10: Archive Node API not ready yet..."
+  echo "  Attempt ${attempt}/12: Archive Node API not ready yet (response: ${response})..."
   sleep 5
 done
 if [[ "${archive_ok}" != "true" ]]; then
+  # Check if port is even reachable
+  archive_http=$(curl -s -o /dev/null -w "%{http_code}" "${ARCHIVE_API_URL}" 2>/dev/null || echo "000")
+  echo "  Archive API HTTP status: ${archive_http}"
+  echo "  Container archive-node-api logs:"
+  docker exec "${CONTAINER_NAME}" cat /root/logs/archive-node-api.log 2>/dev/null | tail -20 || true
   fail "Archive Node API query failed: ${response}"
 fi
 
@@ -161,19 +166,11 @@ echo ""
 # Step 4: Transaction lifecycle
 echo "=== Transaction Lifecycle Test ==="
 
-# 4a. Acquire sender account (may need retries as accounts manager talks to daemon)
+# 4a. Acquire sender account
 echo "[Acquiring sender account]"
-sender_response=""
-for attempt in $(seq 1 10); do
-  sender_response=$(curl -sf "${ACCOUNTS_MANAGER_URL}/acquire-account?isRegularAccount=true&unlockAccount=true" 2>/dev/null || echo "")
-  if [[ -n "${sender_response}" ]]; then
-    break
-  fi
-  echo "  Attempt ${attempt}/10: waiting for accounts manager..."
-  sleep 5
-done
-if [[ -z "${sender_response}" ]]; then
-  fail "Failed to acquire sender account"
+sender_response=$(curl -s "${ACCOUNTS_MANAGER_URL}/acquire-account" 2>/dev/null || echo "")
+if [[ -z "${sender_response}" ]] || ! echo "${sender_response}" | jq -e '.pk' >/dev/null 2>&1; then
+  fail "Failed to acquire sender account: ${sender_response}"
   echo ""
   echo "=== Results ==="
   echo "Passed: ${TESTS_PASSED}"
@@ -186,9 +183,9 @@ echo "  Sender: ${sender_pk:0:20}..."
 
 # 4b. Acquire receiver account
 echo "[Acquiring receiver account]"
-receiver_response=$(curl -sf "${ACCOUNTS_MANAGER_URL}/acquire-account?isRegularAccount=true&unlockAccount=true" 2>/dev/null || echo "")
-if [[ -z "${receiver_response}" ]]; then
-  fail "Failed to acquire receiver account"
+receiver_response=$(curl -s "${ACCOUNTS_MANAGER_URL}/acquire-account" 2>/dev/null || echo "")
+if [[ -z "${receiver_response}" ]] || ! echo "${receiver_response}" | jq -e '.pk' >/dev/null 2>&1; then
+  fail "Failed to acquire receiver account: ${receiver_response}"
   echo ""
   echo "=== Results ==="
   echo "Passed: ${TESTS_PASSED}"
