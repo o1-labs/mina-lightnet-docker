@@ -16,7 +16,7 @@ POSTGRES_PORT=5432
 
 DAEMON_URL="http://127.0.0.1:${DAEMON_PORT}/graphql"
 ACCOUNTS_MANAGER_URL="http://127.0.0.1:${ACCOUNTS_MANAGER_PORT}"
-ARCHIVE_API_URL="http://127.0.0.1:${ARCHIVE_API_PORT}/graphql"
+ARCHIVE_API_URL="http://127.0.0.1:${ARCHIVE_API_PORT}"
 
 SYNC_MAX_ATTEMPTS=60
 SYNC_SLEEP=10
@@ -168,7 +168,7 @@ echo "=== Transaction Lifecycle Test ==="
 
 # 4a. Acquire sender account
 echo "[Acquiring sender account]"
-sender_response=$(curl -s "${ACCOUNTS_MANAGER_URL}/acquire-account" 2>/dev/null || echo "")
+sender_response=$(curl -s "${ACCOUNTS_MANAGER_URL}/acquire-account?unlockAccount=true" 2>/dev/null || echo "")
 if [[ -z "${sender_response}" ]] || ! echo "${sender_response}" | jq -e '.pk' >/dev/null 2>&1; then
   fail "Failed to acquire sender account: ${sender_response}"
   echo ""
@@ -183,7 +183,7 @@ echo "  Sender: ${sender_pk:0:20}..."
 
 # 4b. Acquire receiver account
 echo "[Acquiring receiver account]"
-receiver_response=$(curl -s "${ACCOUNTS_MANAGER_URL}/acquire-account" 2>/dev/null || echo "")
+receiver_response=$(curl -s "${ACCOUNTS_MANAGER_URL}/acquire-account?unlockAccount=true" 2>/dev/null || echo "")
 if [[ -z "${receiver_response}" ]] || ! echo "${receiver_response}" | jq -e '.pk' >/dev/null 2>&1; then
   fail "Failed to acquire receiver account: ${receiver_response}"
   echo ""
