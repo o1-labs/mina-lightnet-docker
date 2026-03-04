@@ -130,13 +130,20 @@ else
   fail "Accounts Manager returned HTTP ${http_code}"
 fi
 
-# 3c. Archive Node API
+# 3c. Archive Node API (may need retries as it depends on archive data being available)
 echo "[Archive Node API]"
-response=$(graphql_query "${ARCHIVE_API_URL}" "{ networkState { latestCanonicalBlockHeight } }")
-if [[ -n "${response}" ]] && [[ "${response}" != *'"errors"'* ]]; then
-  height=$(echo "${response}" | jq -r '.data.networkState.latestCanonicalBlockHeight // empty')
-  pass "Archive Node API is responding, latestCanonicalBlockHeight=${height}"
-else
+archive_ok=false
+for attempt in $(seq 1 10); do
+  response=$(graphql_query "${ARCHIVE_API_URL}" "{ blocks(limit: 1) { stateHash } }")
+  if [[ -n "${response}" ]] && [[ "${response}" != *'"errors"'* ]] && [[ "${response}" == *'"blocks"'* ]]; then
+    archive_ok=true
+    pass "Archive Node API is responding"
+    break
+  fi
+  echo "  Attempt ${attempt}/10: Archive Node API not ready yet..."
+  sleep 5
+done
+if [[ "${archive_ok}" != "true" ]]; then
   fail "Archive Node API query failed: ${response}"
 fi
 
@@ -154,9 +161,17 @@ echo ""
 # Step 4: Transaction lifecycle
 echo "=== Transaction Lifecycle Test ==="
 
-# 4a. Acquire sender account
+# 4a. Acquire sender account (may need retries as accounts manager talks to daemon)
 echo "[Acquiring sender account]"
-sender_response=$(curl -sf "${ACCOUNTS_MANAGER_URL}/acquire-account?isRegularAccount=true&unlockAccount=true" 2>/dev/null || echo "")
+sender_response=""
+for attempt in $(seq 1 10); do
+  sender_response=$(curl -sf "${ACCOUNTS_MANAGER_URL}/acquire-account?isRegularAccount=true&unlockAccount=true" 2>/dev/null || echo "")
+  if [[ -n "${sender_response}" ]]; then
+    break
+  fi
+  echo "  Attempt ${attempt}/10: waiting for accounts manager..."
+  sleep 5
+done
 if [[ -z "${sender_response}" ]]; then
   fail "Failed to acquire sender account"
   echo ""
@@ -231,11 +246,10 @@ if [[ -n "${tx_hash}" ]]; then
   fi
 
   # 4f. Verify via Archive Node API
-  echo "[Verifying archive API block height advanced]"
-  response=$(graphql_query "${ARCHIVE_API_URL}" "{ networkState { latestCanonicalBlockHeight } }")
-  if [[ -n "${response}" ]] && [[ "${response}" != *'"errors"'* ]]; then
-    final_height=$(echo "${response}" | jq -r '.data.networkState.latestCanonicalBlockHeight // empty')
-    pass "Archive API reports latestCanonicalBlockHeight=${final_height}"
+  echo "[Verifying archive API has blocks]"
+  response=$(graphql_query "${ARCHIVE_API_URL}" "{ blocks(limit: 1) { stateHash } }")
+  if [[ -n "${response}" ]] && [[ "${response}" != *'"errors"'* ]] && [[ "${response}" == *'"blocks"'* ]]; then
+    pass "Archive API reports blocks available"
   else
     fail "Archive API final check failed: ${response}"
   fi
