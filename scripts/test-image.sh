@@ -1,0 +1,270 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# Integration test for Mina Lightnet Docker image
+# Usage: ./scripts/test-image.sh <docker-image-name>
+#
+# Example:
+#   ./scripts/test-image.sh test-local/mina-local-network:develop-latest-lightnet
+
+CONTAINER_NAME="mina-lightnet-test"
+DAEMON_PORT=8080
+ACCOUNTS_MANAGER_PORT=8181
+ARCHIVE_API_PORT=8282
+POSTGRES_PORT=5432
+
+DAEMON_URL="http://127.0.0.1:${DAEMON_PORT}/graphql"
+ACCOUNTS_MANAGER_URL="http://127.0.0.1:${ACCOUNTS_MANAGER_PORT}"
+ARCHIVE_API_URL="http://127.0.0.1:${ARCHIVE_API_PORT}/graphql"
+
+SYNC_MAX_ATTEMPTS=60
+SYNC_SLEEP=10
+TX_MAX_ATTEMPTS=30
+TX_SLEEP=10
+
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+# --- Helpers ---
+
+cleanup() {
+  echo ""
+  echo "=== Cleanup ==="
+  echo "Stopping and removing container ${CONTAINER_NAME}..."
+  docker rm -f "${CONTAINER_NAME}" 2>/dev/null || true
+}
+
+trap cleanup EXIT
+
+pass() {
+  TESTS_PASSED=$((TESTS_PASSED + 1))
+  echo "  PASS: $1"
+}
+
+fail() {
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+  echo "  FAIL: $1"
+}
+
+graphql_query() {
+  local url="$1"
+  local query="$2"
+  local payload
+  payload=$(jq -nc --arg q "$query" '{query: $q}')
+  curl -sf -X POST -H "Content-Type: application/json" -d "$payload" "$url" 2>/dev/null || echo ""
+}
+
+# --- Main ---
+
+if [[ $# -ne 1 ]]; then
+  echo "Usage: $0 <docker-image-name>"
+  exit 1
+fi
+
+IMAGE="$1"
+
+echo "=== Mina Lightnet Docker Integration Test ==="
+echo "Image: ${IMAGE}"
+echo ""
+
+# Step 1: Start the container
+echo "=== Starting container ==="
+docker rm -f "${CONTAINER_NAME}" 2>/dev/null || true
+docker run -d \
+  --name "${CONTAINER_NAME}" \
+  -p "${DAEMON_PORT}:${DAEMON_PORT}" \
+  -p "${ACCOUNTS_MANAGER_PORT}:${ACCOUNTS_MANAGER_PORT}" \
+  -p "${ARCHIVE_API_PORT}:${ARCHIVE_API_PORT}" \
+  -p "${POSTGRES_PORT}:${POSTGRES_PORT}" \
+  --env NETWORK_TYPE=single-node \
+  --env PROOF_LEVEL=none \
+  --env RUN_ARCHIVE_NODE=true \
+  --env LOG_LEVEL=Info \
+  "${IMAGE}"
+
+echo "Container started: ${CONTAINER_NAME}"
+echo ""
+
+# Step 2: Wait for network sync
+echo "=== Waiting for network sync (max $((SYNC_MAX_ATTEMPTS * SYNC_SLEEP))s) ==="
+synced=false
+for attempt in $(seq 1 ${SYNC_MAX_ATTEMPTS}); do
+  response=$(graphql_query "${DAEMON_URL}" "{ syncStatus }")
+  if [[ "${response}" == *'"syncStatus":"SYNCED"'* ]]; then
+    synced=true
+    echo "Network synced after $((attempt * SYNC_SLEEP))s"
+    break
+  fi
+  echo "  Attempt ${attempt}/${SYNC_MAX_ATTEMPTS}: not synced yet..."
+  sleep ${SYNC_SLEEP}
+done
+
+if [[ "${synced}" != "true" ]]; then
+  echo "FATAL: Network did not sync within $((SYNC_MAX_ATTEMPTS * SYNC_SLEEP))s"
+  echo "Container logs (last 50 lines):"
+  docker logs --tail 50 "${CONTAINER_NAME}" 2>&1 || true
+  exit 1
+fi
+echo ""
+
+# Step 3: Test services
+echo "=== Testing Services ==="
+
+# 3a. Mina Daemon
+echo "[Mina Daemon]"
+response=$(graphql_query "${DAEMON_URL}" "{ daemonStatus { syncStatus blockchainLength } }")
+if [[ "${response}" == *'"syncStatus":"SYNCED"'* ]] && [[ "${response}" == *'"blockchainLength"'* ]]; then
+  blockchain_length=$(echo "${response}" | jq -r '.data.daemonStatus.blockchainLength // empty')
+  pass "Daemon is synced, blockchainLength=${blockchain_length}"
+else
+  fail "Daemon status query failed: ${response}"
+fi
+
+# 3b. Accounts Manager
+echo "[Accounts Manager]"
+http_code=$(curl -s -o /dev/null -w "%{http_code}" "${ACCOUNTS_MANAGER_URL}/list-acquired-accounts" 2>/dev/null || echo "000")
+if [[ "${http_code}" == "200" ]]; then
+  pass "Accounts Manager is responding (HTTP ${http_code})"
+else
+  fail "Accounts Manager returned HTTP ${http_code}"
+fi
+
+# 3c. Archive Node API
+echo "[Archive Node API]"
+response=$(graphql_query "${ARCHIVE_API_URL}" "{ networkState { latestCanonicalBlockHeight } }")
+if [[ -n "${response}" ]] && [[ "${response}" != *'"errors"'* ]]; then
+  height=$(echo "${response}" | jq -r '.data.networkState.latestCanonicalBlockHeight // empty')
+  pass "Archive Node API is responding, latestCanonicalBlockHeight=${height}"
+else
+  fail "Archive Node API query failed: ${response}"
+fi
+
+# 3d. PostgreSQL
+echo "[PostgreSQL]"
+pg_result=$(docker exec "${CONTAINER_NAME}" psql -U postgres -d archive -t -c "SELECT count(*) FROM blocks;" 2>/dev/null | tr -d ' \n' || echo "")
+if [[ -n "${pg_result}" ]] && [[ "${pg_result}" =~ ^[0-9]+$ ]] && [[ "${pg_result}" -ge 0 ]]; then
+  pass "PostgreSQL is responding, blocks count=${pg_result}"
+else
+  fail "PostgreSQL query failed: ${pg_result}"
+fi
+
+echo ""
+
+# Step 4: Transaction lifecycle
+echo "=== Transaction Lifecycle Test ==="
+
+# 4a. Acquire sender account
+echo "[Acquiring sender account]"
+sender_response=$(curl -sf "${ACCOUNTS_MANAGER_URL}/acquire-account?isRegularAccount=true&unlockAccount=true" 2>/dev/null || echo "")
+if [[ -z "${sender_response}" ]]; then
+  fail "Failed to acquire sender account"
+  echo ""
+  echo "=== Results ==="
+  echo "Passed: ${TESTS_PASSED}"
+  echo "Failed: ${TESTS_FAILED}"
+  exit 1
+fi
+sender_pk=$(echo "${sender_response}" | jq -r '.pk')
+sender_sk=$(echo "${sender_response}" | jq -r '.sk')
+echo "  Sender: ${sender_pk:0:20}..."
+
+# 4b. Acquire receiver account
+echo "[Acquiring receiver account]"
+receiver_response=$(curl -sf "${ACCOUNTS_MANAGER_URL}/acquire-account?isRegularAccount=true&unlockAccount=true" 2>/dev/null || echo "")
+if [[ -z "${receiver_response}" ]]; then
+  fail "Failed to acquire receiver account"
+  echo ""
+  echo "=== Results ==="
+  echo "Passed: ${TESTS_PASSED}"
+  echo "Failed: ${TESTS_FAILED}"
+  exit 1
+fi
+receiver_pk=$(echo "${receiver_response}" | jq -r '.pk')
+echo "  Receiver: ${receiver_pk:0:20}..."
+
+# 4c. Check sender balance
+echo "[Checking sender balance]"
+response=$(graphql_query "${DAEMON_URL}" "{ account(publicKey: \"${sender_pk}\") { balance { total } nonce } }")
+sender_balance=$(echo "${response}" | jq -r '.data.account.balance.total // empty')
+sender_nonce=$(echo "${response}" | jq -r '.data.account.nonce // empty')
+if [[ -n "${sender_balance}" ]]; then
+  pass "Sender balance: ${sender_balance}, nonce: ${sender_nonce}"
+else
+  fail "Could not query sender balance: ${response}"
+fi
+
+# 4d. Send payment
+echo "[Sending payment]"
+send_mutation="mutation { sendPayment(input: { from: \"${sender_pk}\", to: \"${receiver_pk}\", amount: \"1000000000\", fee: \"100000000\" }) { payment { id hash } } }"
+send_response=$(graphql_query "${DAEMON_URL}" "${send_mutation}")
+tx_hash=""
+if [[ -n "${send_response}" ]] && [[ "${send_response}" != *'"errors"'* ]]; then
+  tx_hash=$(echo "${send_response}" | jq -r '.data.sendPayment.payment.hash // empty')
+  if [[ -n "${tx_hash}" ]]; then
+    pass "Payment sent, hash: ${tx_hash}"
+  else
+    fail "Payment sent but no hash returned: ${send_response}"
+  fi
+else
+  fail "sendPayment mutation failed: ${send_response}"
+fi
+
+# 4e. Wait for transaction to appear in archive
+if [[ -n "${tx_hash}" ]]; then
+  echo "[Waiting for transaction in archive (max $((TX_MAX_ATTEMPTS * TX_SLEEP))s)]"
+  tx_found=false
+  for attempt in $(seq 1 ${TX_MAX_ATTEMPTS}); do
+    # Query archive PostgreSQL directly for the transaction hash
+    tx_count=$(docker exec "${CONTAINER_NAME}" psql -U postgres -d archive -t -c "SELECT count(*) FROM user_commands WHERE hash = '${tx_hash}';" 2>/dev/null | tr -d ' \n' || echo "0")
+    if [[ "${tx_count}" =~ ^[0-9]+$ ]] && [[ "${tx_count}" -gt 0 ]]; then
+      tx_found=true
+      pass "Transaction found in archive DB (hash: ${tx_hash})"
+      break
+    fi
+    echo "  Attempt ${attempt}/${TX_MAX_ATTEMPTS}: transaction not in archive yet..."
+    sleep ${TX_SLEEP}
+  done
+
+  if [[ "${tx_found}" != "true" ]]; then
+    fail "Transaction not found in archive within $((TX_MAX_ATTEMPTS * TX_SLEEP))s"
+  fi
+
+  # 4f. Verify via Archive Node API
+  echo "[Verifying archive API block height advanced]"
+  response=$(graphql_query "${ARCHIVE_API_URL}" "{ networkState { latestCanonicalBlockHeight } }")
+  if [[ -n "${response}" ]] && [[ "${response}" != *'"errors"'* ]]; then
+    final_height=$(echo "${response}" | jq -r '.data.networkState.latestCanonicalBlockHeight // empty')
+    pass "Archive API reports latestCanonicalBlockHeight=${final_height}"
+  else
+    fail "Archive API final check failed: ${response}"
+  fi
+fi
+
+# 4g. Release accounts
+echo "[Releasing accounts]"
+curl -sf -X PUT -H "Content-Type: application/json" \
+  -d "{\"pk\":\"${sender_pk}\",\"sk\":\"${sender_sk}\"}" \
+  "${ACCOUNTS_MANAGER_URL}/release-account" >/dev/null 2>&1 || true
+
+receiver_sk=$(echo "${receiver_response}" | jq -r '.sk')
+curl -sf -X PUT -H "Content-Type: application/json" \
+  -d "{\"pk\":\"${receiver_pk}\",\"sk\":\"${receiver_sk}\"}" \
+  "${ACCOUNTS_MANAGER_URL}/release-account" >/dev/null 2>&1 || true
+
+pass "Accounts released"
+
+echo ""
+echo "=== Results ==="
+echo "Passed: ${TESTS_PASSED}"
+echo "Failed: ${TESTS_FAILED}"
+
+if [[ ${TESTS_FAILED} -gt 0 ]]; then
+  echo ""
+  echo "INTEGRATION TEST FAILED"
+  exit 1
+else
+  echo ""
+  echo "ALL INTEGRATION TESTS PASSED"
+  exit 0
+fi
