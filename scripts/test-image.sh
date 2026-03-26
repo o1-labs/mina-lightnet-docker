@@ -166,26 +166,19 @@ echo ""
 # Step 4: Transaction lifecycle
 echo "=== Transaction Lifecycle Test ==="
 
-# 4a. Get sender from daemon's own wallets (pre-loaded whale/fish keys)
-echo "[Getting sender from daemon wallets]"
-wallets_response=$(graphql_query "${DAEMON_URL}" "{ ownedWallets { publicKey locked } }")
-sender_pk=$(echo "${wallets_response}" | jq -r '[.data.ownedWallets[] | select(.locked == false)] | first | .publicKey // empty')
-if [[ -z "${sender_pk}" ]]; then
-  # Try to get any wallet and unlock it
-  sender_pk=$(echo "${wallets_response}" | jq -r '.data.ownedWallets[0].publicKey // empty')
-  if [[ -n "${sender_pk}" ]]; then
-    echo "  Unlocking wallet ${sender_pk:0:20}..."
-    graphql_query "${DAEMON_URL}" "mutation { unlockAccount(input: { publicKey: \"${sender_pk}\", password: \"naughty blue worm\" }) { account { publicKey } } }" >/dev/null
-  fi
-fi
-if [[ -z "${sender_pk}" ]]; then
-  fail "No wallets available on daemon: ${wallets_response}"
+# 4a. Acquire sender account from accounts manager
+# The accounts manager automatically imports and unlocks the key on the daemon
+echo "[Acquiring sender account]"
+sender_response=$(curl -s "${ACCOUNTS_MANAGER_URL}/acquire-account" 2>/dev/null || echo "")
+if [[ -z "${sender_response}" ]] || ! echo "${sender_response}" | jq -e '.pk' >/dev/null 2>&1; then
+  fail "Failed to acquire sender account: ${sender_response}"
   echo ""
   echo "=== Results ==="
   echo "Passed: ${TESTS_PASSED}"
   echo "Failed: ${TESTS_FAILED}"
   exit 1
 fi
+sender_pk=$(echo "${sender_response}" | jq -r '.pk')
 echo "  Sender: ${sender_pk:0:20}..."
 
 # 4b. Acquire receiver account from accounts manager
@@ -259,14 +252,18 @@ if [[ -n "${tx_hash}" ]]; then
   fi
 fi
 
-# 4g. Release receiver account
-echo "[Releasing receiver account]"
+# 4g. Release acquired accounts
+echo "[Releasing acquired accounts]"
+sender_sk=$(echo "${sender_response}" | jq -r '.sk')
+curl -s -X PUT -H "Content-Type: application/json" \
+  -d "{\"pk\":\"${sender_pk}\",\"sk\":\"${sender_sk}\"}" \
+  "${ACCOUNTS_MANAGER_URL}/release-account" >/dev/null 2>&1 || true
 receiver_sk=$(echo "${receiver_response}" | jq -r '.sk')
 curl -s -X PUT -H "Content-Type: application/json" \
   -d "{\"pk\":\"${receiver_pk}\",\"sk\":\"${receiver_sk}\"}" \
   "${ACCOUNTS_MANAGER_URL}/release-account" >/dev/null 2>&1 || true
 
-pass "Receiver account released"
+pass "Acquired accounts released"
 
 echo ""
 echo "=== Results ==="
