@@ -166,9 +166,9 @@ echo ""
 # Step 4: Transaction lifecycle
 echo "=== Transaction Lifecycle Test ==="
 
-# 4a. Acquire sender account from accounts manager (with auto-unlock on daemon)
+# 4a. Acquire sender account from accounts manager, then import and unlock on daemon
 echo "[Acquiring sender account]"
-sender_response=$(curl -s "${ACCOUNTS_MANAGER_URL}/acquire-account?unlockAccount=true" 2>/dev/null || echo "")
+sender_response=$(curl -s "${ACCOUNTS_MANAGER_URL}/acquire-account" 2>/dev/null || echo "")
 if [[ -z "${sender_response}" ]] || ! echo "${sender_response}" | jq -e '.pk' >/dev/null 2>&1; then
   fail "Failed to acquire sender account: ${sender_response}"
   echo ""
@@ -179,6 +179,15 @@ if [[ -z "${sender_response}" ]] || ! echo "${sender_response}" | jq -e '.pk' >/
 fi
 sender_pk=$(echo "${sender_response}" | jq -r '.pk')
 echo "  Sender: ${sender_pk:0:20}..."
+
+# Import key file from wallet store into the daemon and unlock it
+WALLET_STORE_PATH="/root/.mina-network/nodes/seed/wallets/store"
+echo "  Importing sender key into daemon..."
+import_response=$(graphql_query "${DAEMON_URL}" "mutation { importAccount(path: \"${WALLET_STORE_PATH}/${sender_pk}\", password: \"naughty blue worm\") { publicKey alreadyImported success } }")
+echo "  Import response: ${import_response}"
+echo "  Unlocking sender account..."
+unlock_response=$(graphql_query "${DAEMON_URL}" "mutation { unlockAccount(input: { publicKey: \"${sender_pk}\", password: \"naughty blue worm\" }) { account { publicKey } } }")
+echo "  Unlock response: ${unlock_response}"
 
 # 4b. Acquire receiver account from accounts manager
 echo "[Acquiring receiver account]"
