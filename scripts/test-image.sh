@@ -166,8 +166,7 @@ echo ""
 # Step 4: Transaction lifecycle
 echo "=== Transaction Lifecycle Test ==="
 
-# 4a. Acquire sender account from accounts manager
-# The accounts manager automatically imports and unlocks the key on the daemon
+# 4a. Acquire sender account from accounts manager and unlock it on the daemon
 echo "[Acquiring sender account]"
 sender_response=$(curl -s "${ACCOUNTS_MANAGER_URL}/acquire-account" 2>/dev/null || echo "")
 if [[ -z "${sender_response}" ]] || ! echo "${sender_response}" | jq -e '.pk' >/dev/null 2>&1; then
@@ -180,6 +179,8 @@ if [[ -z "${sender_response}" ]] || ! echo "${sender_response}" | jq -e '.pk' >/
 fi
 sender_pk=$(echo "${sender_response}" | jq -r '.pk')
 echo "  Sender: ${sender_pk:0:20}..."
+echo "  Unlocking sender account on daemon..."
+graphql_query "${DAEMON_URL}" "mutation { unlockAccount(input: { publicKey: \"${sender_pk}\", password: \"naughty blue worm\" }) { account { publicKey } } }" >/dev/null
 
 # 4b. Acquire receiver account from accounts manager
 echo "[Acquiring receiver account]"
