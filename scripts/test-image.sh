@@ -180,10 +180,14 @@ fi
 sender_pk=$(echo "${sender_response}" | jq -r '.pk')
 echo "  Sender: ${sender_pk:0:20}..."
 
-# Import key file from wallet store into the daemon and unlock it
-WALLET_STORE_PATH="/root/.mina-network/nodes/seed/wallets/store"
+# Copy the encrypted key file into the container and import it into the daemon
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+KEY_PAIRS_DIR="${SCRIPT_DIR}/../configuration/key-pairs"
+CONTAINER_KEY_PATH="/tmp/${sender_pk}"
+echo "  Copying key file into container..."
+docker cp "${KEY_PAIRS_DIR}/${sender_pk}" "${CONTAINER_NAME}:${CONTAINER_KEY_PATH}"
 echo "  Importing sender key into daemon..."
-import_response=$(graphql_query "${DAEMON_URL}" "mutation { importAccount(path: \"${WALLET_STORE_PATH}/${sender_pk}\", password: \"naughty blue worm\") { publicKey alreadyImported success } }")
+import_response=$(graphql_query "${DAEMON_URL}" "mutation { importAccount(path: \"${CONTAINER_KEY_PATH}\", password: \"naughty blue worm\") { publicKey alreadyImported success } }")
 echo "  Import response: ${import_response}"
 echo "  Unlocking sender account..."
 unlock_response=$(graphql_query "${DAEMON_URL}" "mutation { unlockAccount(input: { publicKey: \"${sender_pk}\", password: \"naughty blue worm\" }) { account { publicKey } } }")
