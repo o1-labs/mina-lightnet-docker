@@ -1,0 +1,5 @@
+# Mina Lightnet Docker
+
+> Docker images for lightweight Mina blockchain test networks with 1000+ prefunded accounts for zkApp development and testing.
+
+For full project documentation including structure, build instructions, API reference, and important technical gotchas, see [CLAUDE.md](CLAUDE.md).

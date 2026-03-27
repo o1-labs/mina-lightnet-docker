@@ -19,8 +19,11 @@ scripts/
   build-all.sh                # Orchestrates multi-branch/multi-arch Docker builds
   build-image.sh              # Builds a single Docker image (uses docker buildx)
   spinup-testnet.sh           # Container entrypoint: starts PostgreSQL, Archive API, Accounts Manager, Mina daemons, NGINX
+  test-image.sh               # Integration test: services health, transaction lifecycle, archive verification
   wait-for-network.sh         # Polls GraphQL for syncStatus: SYNCED (max 60 attempts, 10s interval)
-.github/workflows/build.yml  # Manual-dispatch CI: builds nightly images for develop/compatible/master
+.github/workflows/
+  build.yml                   # Manual-dispatch CI: builds nightly images for develop/compatible/master
+  test.yml                    # PR CI: builds image and runs integration tests
 ```
 
 ## Building
@@ -96,6 +99,28 @@ Profiles: `devnet` (full proofs), `lightnet` (no proofs)
 - `stable.apt.packages.minaprotocol.com` — Stable releases (signed)
 - `packages.o1test.net` — Unsigned, multichannel (legacy)
 
+## Testing
+
+```bash
+# Build and run integration tests locally (builds image then runs test suite)
+./scripts/build-all.sh --target-branches "develop" --mina-release nightly --docker-hub-user test-local --skip-push
+./scripts/test-image.sh test-local/mina-local-network:develop-latest-lightnet
+```
+
+CI runs automatically on PRs to develop via `.github/workflows/test.yml`.
+
+The integration test (`scripts/test-image.sh`) verifies: daemon sync, accounts manager, archive API, PostgreSQL, and a full transaction lifecycle (send payment + verify in archive).
+
+## Important Gotchas
+
+- **Wallet store is empty in the container.** Although `build-all.sh` copies key-pairs into a temp folder during build, the Docker build context is the repo root, so `configuration/mina-local-network/nodes/*/wallets/store/` directories in the image are empty. To send transactions, you must import a key file into the daemon via `importAccount` GraphQL mutation.
+- **Key file permissions.** The Mina daemon requires `0700` on the directory and `0600` on the key file. Use `docker cp` + `chmod` when importing keys at runtime.
+- **Accounts Manager does not auto-import keys.** `/acquire-account` returns `{pk, sk}` from the genesis ledger but does NOT import the key into the daemon's wallet. The `?unlockAccount=true` parameter only works if the key is already in the daemon's wallet store.
+- **NGINX proxy (port 8080) forwards to the daemon's REST port (3101 in single-node).** The daemon's actual REST port is base port + 1 (3100 + 1 = 3101). GraphQL mutations like `unlockAccount` work through this proxy.
+- **Genesis ledger accounts.** `daemon.json` contains ~1007 accounts. 1000 have `sk` populated; 7 infrastructure accounts (online/offline whales, fish, snark coordinator) have `sk: null`.
+- **Key-pairs directory** contains 1003 encrypted wallet files (JSON format with `xsalsa20poly1305` encryption). Password for all keys: `naughty blue worm`.
+- **mina-local-network.sh** is downloaded from the Mina repo at a pinned commit (`MINA_COMMIT` in Dockerfile). It is NOT part of this repo. In `--demo` mode with `--config inherit`, it preserves pre-existing config at `~/.mina-network/` and runs a single seed node.
+
 ## Key Conventions
 
 - Key directories: permissions 0700; key files: 0600
@@ -103,3 +128,4 @@ Profiles: `devnet` (full proofs), `lightnet` (no proofs)
 - Container entrypoint: `scripts/spinup-testnet.sh`
 - Transaction finality (k): 30 blocks; slots per epoch: 720
 - CI pushes to Docker Hub as `o1labs/mina-local-network`
+- Shell scripts use `bash` with `set -euo pipefail`
