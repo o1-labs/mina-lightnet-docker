@@ -3,10 +3,11 @@
 set -euo pipefail
 
 # Integration test for Mina Lightnet Docker image
-# Usage: ./scripts/test-image.sh <docker-image-name>
+# Usage: ./scripts/test-image.sh <docker-image-name> [proof-level]
 #
-# Example:
-#   ./scripts/test-image.sh test-local/mina-local-network:develop-latest-lightnet
+# Examples:
+#   ./scripts/test-image.sh test-local/mina-local-network:develop-latest-lightnet none
+#   ./scripts/test-image.sh test-local/mina-local-network:develop-latest-devnet full
 
 CONTAINER_NAME="mina-lightnet-test"
 DAEMON_PORT=8080
@@ -18,10 +19,20 @@ DAEMON_URL="http://127.0.0.1:${DAEMON_PORT}/graphql"
 ACCOUNTS_MANAGER_URL="http://127.0.0.1:${ACCOUNTS_MANAGER_PORT}"
 ARCHIVE_API_URL="http://127.0.0.1:${ARCHIVE_API_PORT}"
 
-SYNC_MAX_ATTEMPTS=60
-SYNC_SLEEP=10
-TX_MAX_ATTEMPTS=30
-TX_SLEEP=10
+PROOF_LEVEL="${2:-none}"
+
+# Adjust timeouts based on proof level (full proofs are much slower)
+if [[ "${PROOF_LEVEL}" == "full" ]]; then
+  SYNC_MAX_ATTEMPTS=120
+  SYNC_SLEEP=10
+  TX_MAX_ATTEMPTS=60
+  TX_SLEEP=10
+else
+  SYNC_MAX_ATTEMPTS=60
+  SYNC_SLEEP=10
+  TX_MAX_ATTEMPTS=30
+  TX_SLEEP=10
+fi
 
 TESTS_PASSED=0
 TESTS_FAILED=0
@@ -57,8 +68,9 @@ graphql_query() {
 
 # --- Main ---
 
-if [[ $# -ne 1 ]]; then
-  echo "Usage: $0 <docker-image-name>"
+if [[ $# -lt 1 ]]; then
+  echo "Usage: $0 <docker-image-name> [proof-level]"
+  echo "  proof-level: none (default) or full"
   exit 1
 fi
 
@@ -66,6 +78,7 @@ IMAGE="$1"
 
 echo "=== Mina Lightnet Docker Integration Test ==="
 echo "Image: ${IMAGE}"
+echo "Proof level: ${PROOF_LEVEL}"
 echo ""
 
 # Step 1: Start the container
@@ -78,7 +91,7 @@ docker run -d \
   -p "${ARCHIVE_API_PORT}:${ARCHIVE_API_PORT}" \
   -p "${POSTGRES_PORT}:${POSTGRES_PORT}" \
   --env NETWORK_TYPE=single-node \
-  --env PROOF_LEVEL=none \
+  --env PROOF_LEVEL="${PROOF_LEVEL}" \
   --env RUN_ARCHIVE_NODE=true \
   --env LOG_LEVEL=Info \
   "${IMAGE}"

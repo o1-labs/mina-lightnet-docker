@@ -96,6 +96,18 @@ export MINA_EXE=mina
 export ARCHIVE_EXE=mina-archive
 export LOGPROC_EXE=mina-logproc
 
+# Validate that the requested proof level is compatible with the compiled binary
+if [[ -n "${COMPILED_PROOF_LEVEL}" ]] && [[ "${PROOF_LEVEL}" != "${COMPILED_PROOF_LEVEL}" ]]; then
+  echo ""
+  echo "ERROR: Requested PROOF_LEVEL='${PROOF_LEVEL}' is not compatible with this image."
+  echo "       This image was built with proof_level='${COMPILED_PROOF_LEVEL}'."
+  if [[ "${COMPILED_PROOF_LEVEL}" == "none" ]]; then
+    echo "       This is a lightnet image (no proofs). Use the devnet image for PROOF_LEVEL=full."
+  fi
+  echo ""
+  exit 1
+fi
+
 if [[ $NETWORK_TYPE == "single-node" ]]; then
 
   # Redirect 8080 to 3101 (daemon rest port) for single-node networks

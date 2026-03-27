@@ -7,6 +7,7 @@ ARG ARCHIVE_NODE_API_VERSION=0.0.8
 ARG MINA_PROFILE=devnet
 # Extra profile like lightnet
 ARG MINA_EXTRA_PROFILE
+ARG PROOF_LEVEL=full
 
 ENV NODE_VERSION=20.11.1
 ARG TARGETARCH
@@ -89,7 +90,9 @@ EXPOSE 8282
 
 ENV RUN_ARCHIVE_NODE="true"
 ENV NETWORK_TYPE="single-node"
-ENV PROOF_LEVEL="full"
+ENV PROOF_LEVEL="${PROOF_LEVEL}"
+# Record the compile-time proof level so the entrypoint can validate runtime overrides
+ENV COMPILED_PROOF_LEVEL="${PROOF_LEVEL}"
 ENV LOG_LEVEL="Trace"
 ENV POSTGRES_USER=postgres
 ENV POSTGRES_PASSWORD=postgres
