@@ -8,7 +8,7 @@ set -e
 trap "killall background" EXIT
 
 RDBMS_PORT=5432
-ARCHIVE_NODE_PORT=3086
+ARCHIVE_NODE_PORT=3089
 ARCHIVE_NODE_API_PORT=8282
 ARCHIVE_NODE_API_LOG_FILE_PATH=${HOME}/logs/archive-node-api.log
 LEDGER_FOLDER="${HOME}/.mina-network"
@@ -84,7 +84,7 @@ echo ""
 echo "Starting the Accounts-Manager service..."
 echo ""
 
-"accounts-manager" "${GENESIS_LEDGER_CONFIG_FILE}" 8181 3101 "naughty blue worm" &
+"accounts-manager" "${GENESIS_LEDGER_CONFIG_FILE}" 8181 3085 "naughty blue worm" &
 
 if [[ $RUN_ARCHIVE_NODE == "true" ]]; then
     ARCHIVE_CLI_ARGS=" --archive --pg-user ${POSTGRES_USER} --pg-passwd ${POSTGRES_PASSWORD} --pg-db ${POSTGRES_DB}"
@@ -110,14 +110,14 @@ fi
 
 if [[ $NETWORK_TYPE == "single-node" ]]; then
 
-  # Redirect 8080 to 3101 (daemon rest port) for single-node networks
-  nginx-reload 3101
+  # Redirect 8080 to 3085 (daemon rest port) for single-node networks
+  nginx-reload 3085
 
   echo ""
   echo "Starting Single-Node network."
   echo ""
 
-  bash ${HOME}/scripts/mina-local-network/mina-local-network.sh -sp 3100 --demo --config inherit -u delay_sec:0 -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} --override-slot-time ${SLOT_TIME} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS} --archive-server-port ${ARCHIVE_NODE_PORT}
+  bash ${HOME}/scripts/mina-local-network/mina-local-network.sh -sp 3084 --demo --config inherit -u delay_sec:0 -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} --override-slot-time ${SLOT_TIME} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS} --archive-server-port ${ARCHIVE_NODE_PORT}
 
 else
   #TODO: Find out why Nginx needs to be reloaded twice to work properly and why 4006 ?
