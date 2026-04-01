@@ -8,6 +8,7 @@ ARG MINA_PROFILE=devnet
 # Extra profile like lightnet
 ARG MINA_EXTRA_PROFILE
 ARG PROOF_LEVEL=full
+ARG EXPLORER_VERSION=v0.2.2
 
 ENV NODE_VERSION=20.11.1
 ARG TARGETARCH
@@ -76,6 +77,13 @@ RUN npm install -g mina-archive-node-graphql@${ARCHIVE_NODE_API_VERSION}
 RUN curl -fsSL https://github.com/shimkiv/mina-accounts-manager/releases/download/v${MINA_ACCOUNTS_MANAGER_VERSION}/accounts-manager-${TARGETARCH} -o accounts-manager-${TARGETARCH} \
     && chmod +x accounts-manager-${TARGETARCH} \
     && mv accounts-manager-${TARGETARCH} /usr/local/bin/accounts-manager
+
+# install Mina Lightweight Explorer (static files only, no build step)
+RUN mkdir -p /usr/share/nginx/explorer \
+    && curl -fsSL "https://github.com/o1-labs/mina-lightweight-explorer/archive/refs/tags/${EXPLORER_VERSION}.tar.gz" \
+    | tar -xz --strip-components=1 -C /usr/share/nginx/explorer \
+    && rm -f /usr/share/nginx/explorer/LICENSE /usr/share/nginx/explorer/README.md \
+             /usr/share/nginx/explorer/screenshot-dark.png /usr/share/nginx/explorer/server.js
 
 WORKDIR /root
 

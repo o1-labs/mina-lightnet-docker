@@ -58,6 +58,7 @@ Profiles: `devnet` (full proofs), `lightnet` (no proofs)
 | `MINA_PROFILE` | devnet | devnet or lightnet |
 | `ARCHIVE_NODE_API_VERSION` | 0.0.8 | Archive GraphQL API version |
 | `MINA_ACCOUNTS_MANAGER_VERSION` | 0.1.1 | Accounts manager version |
+| `EXPLORER_VERSION` | v0.2.2 | Mina Lightweight Explorer version |
 
 ### Runtime Environment Variables
 
@@ -90,7 +91,8 @@ Profiles: `devnet` (full proofs), `lightnet` (no proofs)
 - **Mina GraphQL** (port 3085): Blockchain queries and transaction submission
 - **Accounts Manager** (port 8181): `GET /acquire-account`, `PUT /release-account`, `GET /list-acquired-accounts`, `PUT /lock-account`, `PUT /unlock-account`
 - **Archive Node API** (port 8282): GraphQL API for historical blockchain data
-- **NGINX** (port 8080): CORS-enabled reverse proxy to Mina GraphQL
+- **NGINX** (port 8080): CORS-enabled reverse proxy to Mina GraphQL + Lightweight Explorer UI
+- **Lightweight Explorer** (port 8080, path /): Web-based block explorer for inspecting blocks, accounts, transactions, and mempool. Source: [mina-lightweight-explorer](https://github.com/o1-labs/mina-lightweight-explorer)
 
 ## Mina Debian Repositories
 

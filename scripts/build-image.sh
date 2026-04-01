@@ -13,6 +13,7 @@ DOCKER_HUB_IMAGE_TAG=""
 ACCOUNTS_MANAGER_VERSION="v1.0.0"
 MINA_PROFILE="devnet"
 MINA_EXTRA_PROFILE=""
+EXPLORER_VERSION="v0.2.2"
 PUSH=1
 NO_CACHE=0
 
@@ -31,6 +32,7 @@ usage() {
   echo "      --mina-profile PROFILE            Mina profile (optional, default: devnet)"
   echo "      --mina-extra-profile EXTRA_PROFILE Extra Mina profile (optional)"
   echo "  -c, --accounts-manager-version PATH   Accounts-Manager version (optional)"
+  echo "      --explorer-version VERSION         Lightweight Explorer version (optional, default: v0.2.2)"
   echo "  -s, --skip-push                       Skip pushing the image to Docker Hub (optional, default: false)"
   echo "      --no-cache                        Disable Docker build cache (optional, default: false)"
   echo "  -h, --help                            Display this help message"
@@ -80,6 +82,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     -c|--accounts-manager-version)
       ACCOUNTS_MANAGER_VERSION="$2"
+      shift 2
+      ;;
+    --explorer-version)
+      EXPLORER_VERSION="$2"
       shift 2
       ;;
     -s|--skip-push)
@@ -192,7 +198,7 @@ if [[ $PUSH -eq 1 ]]; then
   echo ""
   echo "Publishing the Docker image..."
   echo ""
-  docker buildx build --platform ${PLATFORMS} --push ${NO_CACHE_ARG} -t ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG} --build-arg="MINA_PROFILE=${MINA_PROFILE}" --build-arg="MINA_REPO=${MINA_REPO}" --build-arg="MINA_BRANCH=${MINA_BRANCH}" --build-arg="ARCHIVE_NODE_API_TAG=${ARCHIVE_NODE_API_VERSION}" --build-arg="MINA_ACCOUNTS_MANAGER_VERSION=${ACCOUNTS_MANAGER_VERSION}" --build-arg="PROOF_LEVEL=${PROOF_LEVEL}" ${EXTRA_PROFILE_ARG} . -f configuration/Dockerfile
+  docker buildx build --platform ${PLATFORMS} --push ${NO_CACHE_ARG} -t ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG} --build-arg="MINA_PROFILE=${MINA_PROFILE}" --build-arg="MINA_REPO=${MINA_REPO}" --build-arg="MINA_BRANCH=${MINA_BRANCH}" --build-arg="ARCHIVE_NODE_API_TAG=${ARCHIVE_NODE_API_VERSION}" --build-arg="MINA_ACCOUNTS_MANAGER_VERSION=${ACCOUNTS_MANAGER_VERSION}" --build-arg="PROOF_LEVEL=${PROOF_LEVEL}" --build-arg="EXPLORER_VERSION=${EXPLORER_VERSION}" ${EXTRA_PROFILE_ARG} . -f configuration/Dockerfile
 else
   echo ""
   echo "Skipping the Docker image publishing step as requested."
@@ -217,7 +223,7 @@ else
   echo "Building only for current architecture to enable local loading..."
   echo ""
 
-  docker buildx build --platform linux/${DETECTED_ARCH} --load ${NO_CACHE_ARG} -t ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG} --build-arg="MINA_PROFILE=${MINA_PROFILE}" --build-arg="MINA_REPO=${MINA_REPO}" --build-arg="MINA_BRANCH=${MINA_BRANCH}" --build-arg="ARCHIVE_NODE_API_TAG=${ARCHIVE_NODE_API_VERSION}" --build-arg="MINA_ACCOUNTS_MANAGER_VERSION=${ACCOUNTS_MANAGER_VERSION}" --build-arg="PROOF_LEVEL=${PROOF_LEVEL}" ${EXTRA_PROFILE_ARG} . -f configuration/Dockerfile
+  docker buildx build --platform linux/${DETECTED_ARCH} --load ${NO_CACHE_ARG} -t ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG} --build-arg="MINA_PROFILE=${MINA_PROFILE}" --build-arg="MINA_REPO=${MINA_REPO}" --build-arg="MINA_BRANCH=${MINA_BRANCH}" --build-arg="ARCHIVE_NODE_API_TAG=${ARCHIVE_NODE_API_VERSION}" --build-arg="MINA_ACCOUNTS_MANAGER_VERSION=${ACCOUNTS_MANAGER_VERSION}" --build-arg="PROOF_LEVEL=${PROOF_LEVEL}" --build-arg="EXPLORER_VERSION=${EXPLORER_VERSION}" ${EXTRA_PROFILE_ARG} . -f configuration/Dockerfile
 fi
 
 END=$(date +%s)

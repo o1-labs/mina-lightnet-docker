@@ -174,6 +174,20 @@ else
   fail "PostgreSQL query failed: ${pg_result}"
 fi
 
+# 3e. Lightweight Explorer
+echo "[Lightweight Explorer]"
+explorer_http=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${DAEMON_PORT}/" 2>/dev/null || echo "000")
+if [[ "${explorer_http}" == "200" ]]; then
+  explorer_body=$(curl -s "http://127.0.0.1:${DAEMON_PORT}/" 2>/dev/null || echo "")
+  if [[ "${explorer_body}" == *"Lightweight Mina Explorer"* ]]; then
+    pass "Lightweight Explorer is serving on port ${DAEMON_PORT}"
+  else
+    fail "Port ${DAEMON_PORT} returned 200 but content is not the explorer"
+  fi
+else
+  fail "Lightweight Explorer returned HTTP ${explorer_http}"
+fi
+
 echo ""
 
 # Step 4: Transaction lifecycle
