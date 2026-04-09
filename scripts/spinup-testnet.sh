@@ -21,7 +21,7 @@ echo ""
 GENESIS_LEDGER_CONFIG_FILE=${LEDGER_FOLDER}/daemon.json
 
 
-KEYS_FOR_PERMISSIONS_UPDATE=(${LEDGER_FOLDER}/libp2p_keys ${LEDGER_FOLDER}/offline_fish_keys ${LEDGER_FOLDER}/offline_whale_keys ${LEDGER_FOLDER}/online_fish_keys ${LEDGER_FOLDER}/online_whale_keys ${LEDGER_FOLDER}/service-keys ${LEDGER_FOLDER}/snark_coordinator_keys ${LEDGER_FOLDER}/zkapp_keys )
+KEYS_FOR_PERMISSIONS_UPDATE=(${LEDGER_FOLDER}/libp2p_keys ${LEDGER_FOLDER}/offline_fish_keys ${LEDGER_FOLDER}/offline_whale_keys ${LEDGER_FOLDER}/online_fish_keys ${LEDGER_FOLDER}/online_whale_keys ${LEDGER_FOLDER}/service-keys ${LEDGER_FOLDER}/snark_coordinator_keys ${LEDGER_FOLDER}/zkapp_keys ${HOME}/.mina-network/key-pairs)
 
 mkdir -p ${HOME}/logs || true
 
@@ -84,7 +84,7 @@ echo ""
 echo "Starting the Accounts-Manager service..."
 echo ""
 
-"accounts-manager" "${GENESIS_LEDGER_CONFIG_FILE}" 8181 3085 "naughty blue worm" &
+MINA_KEYS_PATH=${HOME}/.mina-network/key-pairs "accounts-manager" "${GENESIS_LEDGER_CONFIG_FILE}" 8181 3085 "naughty blue worm" &
 
 if [[ $RUN_ARCHIVE_NODE == "true" ]]; then
     ARCHIVE_CLI_ARGS=" --archive --pg-user ${POSTGRES_USER} --pg-passwd ${POSTGRES_PASSWORD} --pg-db ${POSTGRES_DB}"
