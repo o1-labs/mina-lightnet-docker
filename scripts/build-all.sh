@@ -246,9 +246,13 @@ cp -r ./configuration/Dockerfile ${TMP_FOLDER}/
 cp -r ./configuration/nginx.conf ${TMP_FOLDER}/
 cp -r ./scripts/spinup-testnet.sh ${TMP_FOLDER}/
 
+echo "Copying key-pairs to wallet stores..."
+set +x
 for KEYS_LOCATION_TARGET in "${KEYS_LOCATION_TARGETS[@]}"; do
   cp -r ./configuration/key-pairs/* ${KEYS_LOCATION_TARGET}
 done
+set -x
+echo "Key-pairs copied successfully."
 
 CURRENT_DIR=$PWD
 
