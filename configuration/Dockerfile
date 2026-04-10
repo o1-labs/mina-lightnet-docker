@@ -37,7 +37,6 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && npm --version
 
 COPY ./configuration/mina-local-network/ /root/.mina-network/
-COPY ./configuration/key-pairs/ /root/.mina-network/key-pairs/
 COPY ./configuration/nginx.conf /root/
 
 COPY ./scripts/spinup-testnet.sh /root/
