@@ -2,7 +2,7 @@ FROM postgres:14-bookworm
 
 ARG MINA_BRANCH=develop
 ARG MINA_REPO=https://nightly.apt.packages.minaprotocol.com
-ARG MINA_ACCOUNTS_MANAGER_VERSION=0.1.1
+ARG MINA_ACCOUNTS_MANAGER_VERSION=0.1.2
 ARG ARCHIVE_NODE_API_VERSION=0.0.8
 ARG MINA_PROFILE=devnet
 # Extra profile like lightnet
@@ -13,8 +13,8 @@ ARG EXPLORER_VERSION=v0.2.2
 ENV NODE_VERSION=20.11.1
 ARG TARGETARCH
 
-# Build MINA debian package name
-ENV MINA_DEB_NAME="mina-${MINA_PROFILE}${MINA_EXTRA_PROFILE:+-$MINA_EXTRA_PROFILE}"
+# Build MINA debian package name (use -generic configless variant)
+ENV MINA_DEB_NAME="mina-${MINA_PROFILE}-generic"
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -74,7 +74,7 @@ RUN rm -f /var/lib/coda/config_*.json
 RUN npm install -g mina-archive-node-graphql@${ARCHIVE_NODE_API_VERSION}
 
 # install Mina Accounts Manager
-RUN curl -fsSL https://github.com/shimkiv/mina-accounts-manager/releases/download/v${MINA_ACCOUNTS_MANAGER_VERSION}/accounts-manager-${TARGETARCH} -o accounts-manager-${TARGETARCH} \
+RUN curl -fsSL https://github.com/o1-labs/mina-accounts-manager/releases/download/v${MINA_ACCOUNTS_MANAGER_VERSION}/accounts-manager-${TARGETARCH} -o accounts-manager-${TARGETARCH} \
     && chmod +x accounts-manager-${TARGETARCH} \
     && mv accounts-manager-${TARGETARCH} /usr/local/bin/accounts-manager
 

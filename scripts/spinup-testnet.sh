@@ -84,7 +84,7 @@ echo ""
 echo "Starting the Accounts-Manager service..."
 echo ""
 
-"accounts-manager" "${GENESIS_LEDGER_CONFIG_FILE}" 8181 3085 "naughty blue worm" &
+MINA_KEYS_PATH=${LEDGER_FOLDER}/nodes/whale_0/wallets/store "accounts-manager" "${GENESIS_LEDGER_CONFIG_FILE}" 8181 3085 "naughty blue worm" &
 
 if [[ $RUN_ARCHIVE_NODE == "true" ]]; then
     ARCHIVE_CLI_ARGS=" --archive --pg-user ${POSTGRES_USER} --pg-passwd ${POSTGRES_PASSWORD} --pg-db ${POSTGRES_DB}"

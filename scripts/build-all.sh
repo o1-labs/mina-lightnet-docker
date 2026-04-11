@@ -7,7 +7,7 @@ set -e
 ARCHS="amd64"
 ARCHIVE_NODE_API_VERSION="0.0.8"
 DOCKER_IMAGE_BUILDING_SCRIPTS_REPO_DIR="./"
-MINA_ACCOUNTS_MANAGER_VERSION="0.1.1"
+MINA_ACCOUNTS_MANAGER_VERSION="0.1.2"
 DOCKER_HUB_USER_NAME=""
 TARGET_BRANCHES=()
 PUSH=1
@@ -246,9 +246,13 @@ cp -r ./configuration/Dockerfile ${TMP_FOLDER}/
 cp -r ./configuration/nginx.conf ${TMP_FOLDER}/
 cp -r ./scripts/spinup-testnet.sh ${TMP_FOLDER}/
 
+echo "Copying key-pairs to wallet stores..."
+set +x
 for KEYS_LOCATION_TARGET in "${KEYS_LOCATION_TARGETS[@]}"; do
   cp -r ./configuration/key-pairs/* ${KEYS_LOCATION_TARGET}
 done
+set -x
+echo "Key-pairs copied successfully."
 
 CURRENT_DIR=$PWD
 
