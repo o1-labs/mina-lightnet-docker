@@ -13,8 +13,8 @@ ARG EXPLORER_VERSION=v0.2.2
 ENV NODE_VERSION=20.11.1
 ARG TARGETARCH
 
-# Build MINA debian package name
-ENV MINA_DEB_NAME="mina-${MINA_PROFILE}${MINA_EXTRA_PROFILE:+-$MINA_EXTRA_PROFILE}"
+# Build MINA debian package name (use -generic configless variant)
+ENV MINA_DEB_NAME="mina-${MINA_PROFILE}-generic"
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update && apt-get install -y --no-install-recommends \
