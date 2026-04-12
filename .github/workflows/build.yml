@@ -20,4 +20,7 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
       - name: Build and push Docker images
-        run: ./scripts/build-all.sh --mina-release nightly --target-branches develop,compatible,master --archs amd64,arm64 --docker-hub-user o1labs
+        # Note: master is excluded because the master Mina branch does not
+        # publish mina-devnet-generic packages to the nightly repo yet.
+        # Re-add master once generic packages are available there.
+        run: ./scripts/build-all.sh --mina-release nightly --target-branches develop,compatible --archs amd64,arm64 --docker-hub-user o1labs
