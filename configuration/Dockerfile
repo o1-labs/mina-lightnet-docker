@@ -40,6 +40,8 @@ COPY ./configuration/mina-local-network/ /root/.mina-network/
 # The accounts-manager uses MINA_KEYS_PATH to find these files when
 # unlockAccount=true is requested (see spinup-testnet.sh).
 COPY ./configuration/key-pairs/ /root/.mina-network/nodes/whale_0/wallets/store/
+RUN chmod 0700 /root/.mina-network/nodes/whale_0/wallets/store \
+    && chmod 0600 /root/.mina-network/nodes/whale_0/wallets/store/*
 COPY ./configuration/nginx.conf /root/
 
 COPY ./scripts/spinup-testnet.sh /root/
