@@ -36,6 +36,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && npm --version
 
 COPY ./configuration/mina-local-network/ /root/.mina-network/
+# Copy pre-encrypted genesis account key-pairs for daemon wallet import.
+# The accounts-manager uses MINA_KEYS_PATH to find these files when
+# unlockAccount=true is requested (see spinup-testnet.sh).
+COPY ./configuration/key-pairs/ /root/.mina-network/nodes/whale_0/wallets/store/
 COPY ./configuration/nginx.conf /root/
 
 COPY ./scripts/spinup-testnet.sh /root/
