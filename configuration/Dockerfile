@@ -10,7 +10,6 @@ ARG MINA_EXTRA_PROFILE
 ARG PROOF_LEVEL=full
 ARG EXPLORER_VERSION=v0.2.2
 
-ENV NODE_VERSION=20.11.1
 ARG TARGETARCH
 
 # Build MINA debian package name (use -generic configless variant)
@@ -30,9 +29,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     netcat-traditional \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# install Node.js
+# install Node.js 20.x LTS (don't pin exact version — nodesource rotates them)
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y --no-install-recommends nodejs=${NODE_VERSION}-1nodesource1 \
+    && apt-get install -y --no-install-recommends nodejs \
     && node --version \
     && npm --version
 
