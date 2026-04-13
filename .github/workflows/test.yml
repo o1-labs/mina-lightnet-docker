@@ -5,7 +5,7 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  build-and-test:
+  build-and-test-develop:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
@@ -26,6 +26,32 @@ jobs:
           ./scripts/build-all.sh \
             --mina-release nightly \
             --target-branches develop \
+            --docker-hub-user test-local \
+            --skip-push
+      - name: Run integration tests (${{ matrix.image-tag }}, proof-level=${{ matrix.proof-level }})
+        run: ./scripts/test-image.sh test-local/mina-local-network:${{ matrix.image-tag }} ${{ matrix.proof-level }}
+
+  build-and-test-compatible:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image-tag: compatible-latest-lightnet
+            proof-level: none
+          - image-tag: compatible-latest-devnet
+            proof-level: full
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build Docker images locally
+        run: |
+          ./scripts/build-all.sh \
+            --mina-release nightly \
+            --target-branches compatible \
             --docker-hub-user test-local \
             --skip-push
       - name: Run integration tests (${{ matrix.image-tag }}, proof-level=${{ matrix.proof-level }})
