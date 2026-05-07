@@ -32,10 +32,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # install Node.js 20.x LTS (don't pin exact version — nodesource rotates them)
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+# AllowWeakRepositories lets nodesource's setup script's internal `apt-get update`
+# tolerate transient "weak security information" errors on Debian's bookworm-updates
+# InRelease — without it the setup aborts and apt silently falls back to Debian's
+# nodejs (which omits npm), breaking the next step.
+RUN echo 'Acquire::AllowWeakRepositories "true";' > /etc/apt/apt.conf.d/99-allow-weak-repos \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && node --version \
-    && npm --version
+    && npm --version \
+    && rm /etc/apt/apt.conf.d/99-allow-weak-repos
 
 COPY ./configuration/mina-local-network/ /root/.mina-network/
 # Copy pre-encrypted genesis account key-pairs for daemon wallet import.
