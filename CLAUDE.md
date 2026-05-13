@@ -56,7 +56,7 @@ Profiles: `devnet` (full proofs), `lightnet` (no proofs)
 | `MINA_BRANCH` | develop | Mina source branch |
 | `MINA_REPO` | nightly apt repo | Debian package source |
 | `MINA_PROFILE` | devnet | devnet or lightnet |
-| `ARCHIVE_NODE_API_VERSION` | 0.0.8 | Archive GraphQL API version |
+| `ARCHIVE_NODE_API_VERSION` | 0.0.6 | Archive GraphQL API version (`@o1-labs/mina-archive-node-graphql`) |
 | `MINA_ACCOUNTS_MANAGER_VERSION` | 0.1.1 | Accounts manager version |
 | `EXPLORER_VERSION` | v0.2.2 | Mina Lightweight Explorer version |
 

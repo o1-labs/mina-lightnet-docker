@@ -53,7 +53,7 @@ start-archive-node-api() {
   echo "Starting the Archive-Node-API service..."
   echo "Archive-Node-API log file: ${ARCHIVE_NODE_API_LOG_FILE_PATH}"
   echo ""
-  PORT=${ARCHIVE_NODE_API_PORT} PG_CONN="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:${RDBMS_PORT}/${POSTGRES_DB}" node /usr/lib/node_modules/mina-archive-node-graphql/build/src/index.js >${ARCHIVE_NODE_API_LOG_FILE_PATH} 2>&1 &
+  PORT=${ARCHIVE_NODE_API_PORT} PG_CONN="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:${RDBMS_PORT}/${POSTGRES_DB}" mina-archive-node-graphql >${ARCHIVE_NODE_API_LOG_FILE_PATH} 2>&1 &
   wait-for-service ${ARCHIVE_NODE_API_PORT}
   echo ""
 }

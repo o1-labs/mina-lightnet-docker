@@ -3,7 +3,7 @@ FROM postgres:14-bookworm
 ARG MINA_BRANCH=develop
 ARG MINA_REPO=https://nightly.apt.packages.minaprotocol.com
 ARG MINA_ACCOUNTS_MANAGER_VERSION=0.1.2
-ARG ARCHIVE_NODE_API_VERSION=0.0.8
+ARG ARCHIVE_NODE_API_VERSION=0.0.6
 ARG MINA_PROFILE=devnet
 # Extra profile like lightnet
 ARG MINA_EXTRA_PROFILE
@@ -83,8 +83,11 @@ RUN curl -fsSL ${MINA_REPO}/repo-signing-key.gpg -o /etc/apt/trusted.gpg.d/minap
 # that will not be valid for other networks
 RUN rm -f /var/lib/coda/config_*.json
 
-# install Mina Archive Node GraphQL API from npm registry
-RUN npm install -g mina-archive-node-graphql@${ARCHIVE_NODE_API_VERSION}
+# install Mina Archive Node GraphQL API from npm registry.
+# Use the scoped @o1-labs publish — the unscoped `mina-archive-node-graphql`
+# is stale (last 0.0.9, Dec 2025) and missing parentHash/userCommands/etc.
+# that landed upstream in 2026. See issue #30.
+RUN npm install -g @o1-labs/mina-archive-node-graphql@${ARCHIVE_NODE_API_VERSION}
 
 # install Mina Accounts Manager
 RUN curl -fsSL https://github.com/o1-labs/mina-accounts-manager/releases/download/v${MINA_ACCOUNTS_MANAGER_VERSION}/accounts-manager-${TARGETARCH} -o accounts-manager-${TARGETARCH} \
