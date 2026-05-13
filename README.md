@@ -428,7 +428,7 @@ Where:
   --archs "amd64,arm64" \
   --mina-release nightly \
   --target-branches "compatible,develop" \
-  --archive-api-version "0.0.8" \
+  --archive-api-version "0.0.6" \
   --accounts-manager-version "0.1.1" \
   --docker-hub-user "o1labs" \
   --docker-scripts-dir "./"
@@ -458,7 +458,7 @@ Where:
   --mina-branch compatible \
   --mina-profile devnet \
   --proof-level none \
-  --archive-api-version "0.0.8" \
+  --archive-api-version "0.0.6" \
   --accounts-manager-version "0.1.1" \
   --docker-user "o1labs" \
   --tag "compatible-latest-lightnet" \
