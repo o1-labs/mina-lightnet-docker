@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Mina Lightnet — Docs</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+           max-width: 880px; margin: 2.2rem auto; padding: 0 1.2rem; }
+    h1 { margin-bottom: .2rem; }
+    h2 { margin-top: 2rem; border-bottom: 1px solid #8884; padding-bottom: .25rem; }
+    h3 { margin-top: 1.4rem; }
+    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    pre { background: #8881; padding: .8rem 1rem; border-radius: 6px; overflow-x: auto; }
+    code { background: #8881; padding: .1em .35em; border-radius: 3px; }
+    pre code { background: none; padding: 0; }
+    table { border-collapse: collapse; margin: .5rem 0 1rem; }
+    th, td { border: 1px solid #8884; padding: .35rem .7rem; text-align: left; }
+    th { background: #8881; }
+    .muted { color: #888; font-size: .9em; }
+    a { color: #2563eb; }
+    .nav { margin: 1rem 0 2rem; padding: .5rem .8rem; background: #8881; border-radius: 6px; }
+    .nav a { margin-right: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Mina Lightnet</h1>
+  <p class="muted">Lightweight Mina blockchain network in a single Docker container — for zkApp development and testing.</p>
+
+  <div class="nav">
+    <a href="#connect">Connect</a>
+    <a href="#endpoints">Endpoints</a>
+    <a href="#env">Env Vars</a>
+    <a href="#accounts">Accounts</a>
+    <a href="/explorer/">Explorer</a>
+    <a href="/">Home</a>
+    <a href="#changelog">Changelog</a>
+    <a href="https://github.com/o1-labs/mina-lightnet-docker">GitHub</a>
+  </div>
+
+  <h2 id="connect">Connect Your App</h2>
+  <p>This container is already running. Point your app at the GraphQL endpoint:</p>
+<pre><code>http://127.0.0.1:8080/graphql</code></pre>
+
+  <h3>o1js</h3>
+<pre><code>import { Mina } from 'o1js';
+const network = Mina.Network('http://127.0.0.1:8080/graphql');
+Mina.setActiveInstance(network);</code></pre>
+
+  <h3>Is it ready?</h3>
+  <p>Single-node lightnet syncs in ~1–2 minutes. Check sync status:</p>
+<pre><code>curl -s http://127.0.0.1:8080/graphql \
+  -H 'Content-Type: application/json' \
+  -d '{"query": "{ syncStatus }"}' | jq -r '.data.syncStatus'
+# wait for: SYNCED</code></pre>
+
+  <h2 id="endpoints">Endpoints</h2>
+  <table>
+    <tr><th>Port</th><th>Service</th></tr>
+    <tr><td>3085</td><td>Mina GraphQL (single-node)</td></tr>
+    <tr><td>4001 / 4006</td><td>Whale GraphQL (multi-node)</td></tr>
+    <tr><td>5001</td><td>Fish GraphQL (multi-node)</td></tr>
+    <tr><td>5432</td><td>PostgreSQL archive DB</td></tr>
+    <tr><td>8080</td><td>NGINX proxy (recommended) — GraphQL at <code>/graphql</code>, Explorer at <code>/</code>, this page at <code>/docs</code></td></tr>
+    <tr><td>8181</td><td>Mina Accounts Manager</td></tr>
+    <tr><td>8282</td><td>Archive Node API</td></tr>
+  </table>
+
+  <h2 id="env">Environment Variables</h2>
+  <table>
+    <tr><th>Variable</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>NETWORK_TYPE</code></td><td><code>single-node</code></td><td><code>single-node</code> or <code>multi-node</code></td></tr>
+    <tr><td><code>PROOF_LEVEL</code></td><td><code>full</code></td><td><code>full</code> or <code>none</code> (lightnet only)</td></tr>
+    <tr><td><code>LOG_LEVEL</code></td><td><code>Trace</code></td><td>Trace / Debug / Info / Warn / Error</td></tr>
+    <tr><td><code>RUN_ARCHIVE_NODE</code></td><td><code>true</code></td><td>Run archive node + PostgreSQL</td></tr>
+    <tr><td><code>SLOT_TIME</code></td><td><code>20000</code></td><td>Block slot time (ms)</td></tr>
+  </table>
+
+  <h2 id="accounts">Accounts Manager (port 8181)</h2>
+  <table>
+    <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+    <tr><td>GET</td><td><code>/acquire-account</code></td><td>Get an unused account (<code>?unlockAccount=true</code> to unlock)</td></tr>
+    <tr><td>PUT</td><td><code>/release-account</code></td><td>Return an account to the pool</td></tr>
+    <tr><td>GET</td><td><code>/list-acquired-accounts</code></td><td>List acquired accounts</td></tr>
+    <tr><td>PUT</td><td><code>/lock-account</code></td><td>Lock an account on the daemon</td></tr>
+    <tr><td>PUT</td><td><code>/unlock-account</code></td><td>Unlock an account on the daemon</td></tr>
+  </table>
+<pre><code>curl http://127.0.0.1:8181/acquire-account
+# { "pk": "B62q...", "sk": "EKE..." }</code></pre>
+
+  <h2 id="changelog">Changelog</h2>
+  <p class="muted">Most recent first. Full history: <code>git log</code> in the repo.</p>
+  <ul>
+    <li><b>fix-nodejs-apt-weak-security</b> — Tolerate weak-security apt errors during nodesource setup so Node.js 20 installs reliably.</li>
+    <li><b>#27</b> — Install <code>lightnet</code> variant deb when <code>MINA_EXTRA_PROFILE</code> is set.</li>
+    <li><b>#26</b> — Copy genesis key-pairs into the Docker image with correct (0700/0600) permissions.</li>
+    <li><b>#25</b> — Copy genesis key-pairs into the Docker image for account import.</li>
+    <li><b>#24</b> — Unpin Node.js version (nodesource rotates exact versions).</li>
+    <li><b>#23</b> — Exclude <code>master</code> from Docker builds until generic packages are available.</li>
+    <li><b>#21</b> — Enable account import for daemon-side signing.</li>
+    <li><b>#20</b> — Add Mina Lightweight Explorer to the Docker image (served at <code>/</code> on 8080).</li>
+    <li><b>#19</b> — Test both lightnet and devnet images in CI.</li>
+    <li><b>#18</b> — Fix <code>PROOF_LEVEL</code> validation for lightnet images.</li>
+    <li><b>#17</b> — Add AI-friendly project documentation.</li>
+    <li><b>#16</b> — Add integration test for Docker image.</li>
+    <li><b>#15</b> — Adjust CI: build on PR, push on main branch.</li>
+    <li><b>#13</b> — Docker build refreshment.</li>
+  </ul>
+
+  <h2>Links</h2>
+  <ul>
+    <li><a href="https://github.com/o1-labs/mina-lightnet-docker">mina-lightnet-docker on GitHub</a></li>
+    <li><a href="https://docs.minaprotocol.com/zkapps/testing-zkapps-lightnet">Testing zkApps with Lightnet</a></li>
+    <li><a href="https://github.com/MinaProtocol/mina">Mina Protocol</a></li>
+    <li><a href="https://github.com/o1-labs/o1js">o1js</a></li>
+  </ul>
+
+  <p class="muted">Served from the container by NGINX on port 8080 at <code>/docs</code>.</p>
+</body>
+</html>

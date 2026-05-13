@@ -101,6 +101,10 @@ RUN mkdir -p /usr/share/nginx/explorer \
     && rm -f /usr/share/nginx/explorer/LICENSE /usr/share/nginx/explorer/README.md \
              /usr/share/nginx/explorer/screenshot-dark.png /usr/share/nginx/explorer/server.js
 
+# static landing page (/) and docs page (/docs) served by NGINX on port 8080
+COPY ./configuration/landing/ /usr/share/nginx/landing/
+COPY ./configuration/docs/ /usr/share/nginx/docs/
+
 WORKDIR /root
 
 EXPOSE 3085
