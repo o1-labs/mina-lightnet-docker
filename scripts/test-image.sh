@@ -174,15 +174,41 @@ else
   fail "PostgreSQL query failed: ${pg_result}"
 fi
 
-# 3e. Lightweight Explorer
-echo "[Lightweight Explorer]"
-explorer_http=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${DAEMON_PORT}/" 2>/dev/null || echo "000")
-if [[ "${explorer_http}" == "200" ]]; then
-  explorer_body=$(curl -s "http://127.0.0.1:${DAEMON_PORT}/" 2>/dev/null || echo "")
-  if [[ "${explorer_body}" == *"Lightweight Mina Explorer"* ]]; then
-    pass "Lightweight Explorer is serving on port ${DAEMON_PORT}"
+# 3e. NGINX-served static pages on port 8080: landing (/), docs (/docs/), explorer (/explorer/)
+echo "[Landing page]"
+landing_http=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${DAEMON_PORT}/" 2>/dev/null || echo "000")
+if [[ "${landing_http}" == "200" ]]; then
+  landing_body=$(curl -s "http://127.0.0.1:${DAEMON_PORT}/" 2>/dev/null || echo "")
+  if [[ "${landing_body}" == *"Mina Lightnet"* ]]; then
+    pass "Landing page is serving on port ${DAEMON_PORT}"
   else
-    fail "Port ${DAEMON_PORT} returned 200 but content is not the explorer"
+    fail "Port ${DAEMON_PORT} / returned 200 but content is not the landing page"
+  fi
+else
+  fail "Landing page returned HTTP ${landing_http}"
+fi
+
+echo "[Docs page]"
+docs_http=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${DAEMON_PORT}/docs/" 2>/dev/null || echo "000")
+if [[ "${docs_http}" == "200" ]]; then
+  docs_body=$(curl -s "http://127.0.0.1:${DAEMON_PORT}/docs/" 2>/dev/null || echo "")
+  if [[ "${docs_body}" == *"Connect Your App"* ]]; then
+    pass "Docs page is serving on port ${DAEMON_PORT}/docs/"
+  else
+    fail "Port ${DAEMON_PORT} /docs/ returned 200 but content is not the docs page"
+  fi
+else
+  fail "Docs page returned HTTP ${docs_http}"
+fi
+
+echo "[Lightweight Explorer]"
+explorer_http=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${DAEMON_PORT}/explorer/" 2>/dev/null || echo "000")
+if [[ "${explorer_http}" == "200" ]]; then
+  explorer_body=$(curl -s "http://127.0.0.1:${DAEMON_PORT}/explorer/" 2>/dev/null || echo "")
+  if [[ "${explorer_body}" == *"Lightweight Mina Explorer"* ]]; then
+    pass "Lightweight Explorer is serving on port ${DAEMON_PORT}/explorer/"
+  else
+    fail "Port ${DAEMON_PORT} /explorer/ returned 200 but content is not the explorer"
   fi
 else
   fail "Lightweight Explorer returned HTTP ${explorer_http}"
