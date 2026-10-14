@@ -3,10 +3,18 @@ FROM postgres:14-bookworm
 ARG MINA_BRANCH=develop
 ARG MINA_REPO=https://nightly.apt.packages.minaprotocol.com
 ARG MINA_ACCOUNTS_MANAGER_VERSION=0.1.2
-ARG ARCHIVE_NODE_API_VERSION=0.0.6
+ARG ARCHIVE_NODE_API_VERSION=2.0.0
 ARG MINA_PROFILE=devnet
-# Extra profile like lightnet
+# Extra profile like lightnet. Selects a variant deb (mina-<profile>-generic-<extra>).
+# Only the nightly repo publishes such variant debs.
 ARG MINA_EXTRA_PROFILE
+# Exact deb version to install (e.g. 4.0.2-84b8d96). Empty = newest in the component.
+ARG MINA_DEB_VERSION
+# Profile the daemon selects at runtime (dev, devnet, lightnet, mainnet).
+# Since Mina 4.0.2 the daemon ships as one network-free binary (mina-generic) and
+# reads its profile from /etc/coda/build_config/PROFILE (or MINA_PROFILE env).
+# Empty = keep the profile shipped by the installed deb.
+ARG MINA_RUNTIME_PROFILE
 ARG PROOF_LEVEL=full
 ARG EXPLORER_VERSION=v0.2.2
 
@@ -14,8 +22,10 @@ ARG TARGETARCH
 
 # Build MINA debian package name (use -generic configless variant).
 # When MINA_EXTRA_PROFILE is set (e.g. "lightnet"), append it as a package-name
-# suffix so the corresponding variant deb is installed (mina-mesa-generic-lightnet).
+# suffix so the corresponding variant deb is installed (mina-devnet-generic-lightnet).
 ENV MINA_DEB_NAME="mina-${MINA_PROFILE}-generic${MINA_EXTRA_PROFILE:+-${MINA_EXTRA_PROFILE}}"
+# Optional "=<version>" pin appended to every mina deb below.
+ENV MINA_DEB_PIN="${MINA_DEB_VERSION:+=${MINA_DEB_VERSION}}"
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -31,13 +41,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     netcat-traditional \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# install Node.js 20.x LTS (don't pin exact version — nodesource rotates them)
+# install Node.js 22.x LTS (don't pin exact version — nodesource rotates them).
+# @o1-labs/mina-archive-node-graphql >= 2.0.0 requires Node >= 22.12.
 # AllowWeakRepositories lets nodesource's setup script's internal `apt-get update`
 # tolerate transient "weak security information" errors on Debian's bookworm-updates
 # InRelease — without it the setup aborts and apt silently falls back to Debian's
 # nodejs (which omits npm), breaking the next step.
 RUN echo 'Acquire::AllowWeakRepositories "true";' > /etc/apt/apt.conf.d/99-allow-weak-repos \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && node --version \
     && npm --version \
@@ -74,9 +85,16 @@ RUN curl -fsSL https://raw.githubusercontent.com/MinaProtocol/mina/${MINA_COMMIT
 RUN curl -fsSL ${MINA_REPO}/repo-signing-key.gpg -o /etc/apt/trusted.gpg.d/minaprotocol.gpg \
     && echo "deb ${MINA_REPO} bookworm ${MINA_BRANCH}" | tee /etc/apt/sources.list.d/mina.list \
     && apt-get update \
-    && apt-get install -y --no-install-recommends mina-logproc ${MINA_DEB_NAME} mina-archive-${MINA_PROFILE} \
+    && apt-get install -y --no-install-recommends \
+        mina-logproc${MINA_DEB_PIN} ${MINA_DEB_NAME}${MINA_DEB_PIN} mina-archive-${MINA_PROFILE}${MINA_DEB_PIN} \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Select the runtime profile (see MINA_RUNTIME_PROFILE above).
+RUN if [ -n "${MINA_RUNTIME_PROFILE}" ]; then \
+      mkdir -p /etc/coda/build_config \
+      && printf '%s' "${MINA_RUNTIME_PROFILE}" > /etc/coda/build_config/PROFILE; \
+    fi
 
 # remove magic config files (it makes sense for artificial testnet only, like the one we are going to spin up)
 # otherwise, if you try to run a node with such config, it will fail as devnet might contain some hardcoded data like fork config
@@ -85,8 +103,8 @@ RUN rm -f /var/lib/coda/config_*.json
 
 # install Mina Archive Node GraphQL API from npm registry.
 # Use the scoped @o1-labs publish — the unscoped `mina-archive-node-graphql`
-# is stale (last 0.0.9, Dec 2025) and missing parentHash/userCommands/etc.
-# that landed upstream in 2026. See issue #30.
+# is stale (last 0.0.9, Dec 2025). 2.0.0 is the first scoped release that shares
+# its major with the archive SDKs (schemaVersion "2.0"). See issue #30.
 RUN npm install -g @o1-labs/mina-archive-node-graphql@${ARCHIVE_NODE_API_VERSION}
 
 # install Mina Accounts Manager

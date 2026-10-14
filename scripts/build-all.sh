@@ -5,21 +5,24 @@ set -e
 
 # Parse command line arguments
 ARCHS="amd64"
-ARCHIVE_NODE_API_VERSION="0.0.6"
+ARCHIVE_NODE_API_VERSION="2.0.0"
 DOCKER_IMAGE_BUILDING_SCRIPTS_REPO_DIR="./"
 MINA_ACCOUNTS_MANAGER_VERSION="0.1.2"
 DOCKER_HUB_USER_NAME=""
 TARGET_BRANCHES=()
 PUSH=1
 EXTRA_DOCKER_SUFFIX=""
+MINA_DEB_VERSION=""
 NO_CACHE=0
 
 # Define allowed values for MINA_RELEASE (enum-like behavior)
-# Since devnet profile is not promoted to stable release, we limit the allowed values.
 # Nightly -> represents cutting edge builds from develop branch
 # Alpha   -> represents pre-release builds for testing
 # Beta    -> represents release candidate builds for final verification, which usually precede stable releases.
-ALLOWED_MINA_RELEASES=("nightly" "alpha" "beta")
+# Stable  -> represents stable releases (stable apt repo). Since Mina 4.0.2 the stable repo publishes
+#            devnet-profile debs (mina-devnet-generic, mina-archive-devnet); there is no lightnet variant
+#            deb, so the lightnet image uses the runtime profile instead (see build-image.sh).
+ALLOWED_MINA_RELEASES=("nightly" "alpha" "beta" "stable")
 
 MINA_RELEASE=${ALLOWED_MINA_RELEASES[0]}
 
@@ -40,6 +43,7 @@ usage() {
   echo "  --docker-hub-user USER                       Docker Hub username (required)"
   echo "  --skip-push                                  Skip pushing images to Docker Hub"
   echo "  --extra-docker-suffix SUFFIX                 Extra suffix to append to Docker image tags"
+  echo "  --mina-deb-version VERSION                   Exact mina deb version to install, e.g. 4.0.2-84b8d96 (optional)"
   echo "  --no-cache                                   Disable Docker build cache"
   echo "  -h, --help                                   Show this help message"
 }
@@ -97,6 +101,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --extra-docker-suffix)
       EXTRA_DOCKER_SUFFIX="$2"
+      shift 2
+      ;;
+    --mina-deb-version)
+      MINA_DEB_VERSION="$2"
       shift 2
       ;;
     --no-cache)
@@ -191,6 +199,16 @@ function build-image() {
   echo ""
 
   NO_CACHE_ARG=$(if [[ $NO_CACHE -eq 1 ]]; then echo "--no-cache"; else echo ""; fi)
+  DEB_VERSION_ARG=$(if [[ -n "$MINA_DEB_VERSION" ]]; then echo "--mina-deb-version ${MINA_DEB_VERSION}"; else echo ""; fi)
+
+  # How the lightnet image gets its profile:
+  #  - nightly/alpha/beta: a dedicated variant deb (mina-<profile>-generic-lightnet)
+  #  - stable (Mina >= 4.0.2): same debs as devnet + runtime profile hint
+  if [[ "$MINA_RELEASE" == "stable" ]]; then
+    LIGHTNET_PROFILE_ARG="--mina-runtime-profile ${profile_lightnet}"
+  else
+    LIGHTNET_PROFILE_ARG="--mina-extra-profile ${profile_lightnet}"
+  fi
 
   # shellcheck disable=SC2046
   SKIP_ARG=$(if [[ $PUSH -eq 1 ]]; then echo ""; else echo "--skip-push"; fi)
@@ -203,7 +221,7 @@ function build-image() {
       --docker-user "${DOCKER_HUB_USER_NAME}" \
       --tag "${branch_name}-latest-devnet${tag_suffix}" \
       --accounts-manager-version "${MINA_ACCOUNTS_MANAGER_VERSION}" \
-      ${SKIP_ARG} ${NO_CACHE_ARG}
+      ${DEB_VERSION_ARG} ${SKIP_ARG} ${NO_CACHE_ARG}
 
   echo ""
   echo "[INFO] For $profile_lightnet profile..."
@@ -214,12 +232,12 @@ function build-image() {
       --archive-api-version "${ARCHIVE_NODE_API_VERSION}" \
       --proof-level none \
       --mina-profile "$profile_devnet" \
-      --mina-extra-profile "$profile_lightnet" \
+      ${LIGHTNET_PROFILE_ARG} \
       ${branch_name_arg} \
       --docker-user "${DOCKER_HUB_USER_NAME}" \
       --tag "${branch_name}-latest-lightnet${tag_suffix}" \
       --accounts-manager-version "${MINA_ACCOUNTS_MANAGER_VERSION}" \
-      ${SKIP_ARG} ${NO_CACHE_ARG}
+      ${DEB_VERSION_ARG} ${SKIP_ARG} ${NO_CACHE_ARG}
 }
 
 

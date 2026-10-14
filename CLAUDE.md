@@ -22,7 +22,8 @@ scripts/
   test-image.sh               # Integration test: services health, transaction lifecycle, archive verification
   wait-for-network.sh         # Polls GraphQL for syncStatus: SYNCED (max 60 attempts, 10s interval)
 .github/workflows/
-  build.yml                   # Manual-dispatch CI: builds nightly images for develop/compatible/master
+  build.yml                   # Push-to-develop/manual CI: builds nightly images for develop/compatible
+  build-release.yml           # Manual CI: builds <version>-{devnet,lightnet} + master-latest-* from a stable release
   test.yml                    # PR CI: builds image and runs integration tests
 ```
 
@@ -37,13 +38,21 @@ scripts/
 
 # Key build-all.sh flags:
 #   --target-branches   Mina branches (develop, compatible, master)
-#   --mina-release      Release type (nightly, alpha, beta)
+#   --mina-release      Release type (nightly, alpha, beta, stable)
+#   --mina-deb-version  Exact deb version to install (e.g. 4.0.2-84b8d96)
 #   --skip-push         Build locally, don't push to Docker Hub
 #   --no-cache          Disable Docker build cache
+
+# Build a stable release image (amd64 only; stable repo has no arm64 debs as of 4.0.2)
+./scripts/build-image.sh --archs amd64 --mina-release stable --mina-deb-version 4.0.2-84b8d96 \
+  --mina-profile devnet --mina-runtime-profile lightnet --proof-level none \
+  --docker-user o1labs --tag 4.0.2-lightnet,master-latest-lightnet
 ```
 
-Image tag format: `o1labs/mina-local-network:<branch>-latest-<profile>[-suffix]`
+Image tag format: `o1labs/mina-local-network:<branch>-latest-<profile>[-suffix]` (nightly) or `:<mina-version>-<profile>` (stable; `master-latest-<profile>` = newest stable)
 Profiles: `devnet` (full proofs), `lightnet` (no proofs)
+
+**Lightnet profile mechanics.** Nightly repo ships a variant deb `mina-devnet-generic-lightnet` (selected with `--mina-extra-profile lightnet`). The stable repo does not. Since Mina 4.0.2 the daemon is one network-free binary (`mina-generic`) that reads its profile from `/etc/coda/build_config/PROFILE` (or `MINA_PROFILE` env), so stable lightnet images install the devnet debs and write `lightnet` into that file (`--mina-runtime-profile lightnet`). `build-all.sh --mina-release stable` does this automatically.
 
 ## Docker Image
 
@@ -53,11 +62,14 @@ Profiles: `devnet` (full proofs), `lightnet` (no proofs)
 
 | Arg | Default | Description |
 |-----|---------|-------------|
-| `MINA_BRANCH` | develop | Mina source branch |
+| `MINA_BRANCH` | develop | Mina source branch = apt component (`stable` for the stable repo) |
 | `MINA_REPO` | nightly apt repo | Debian package source |
-| `MINA_PROFILE` | devnet | devnet or lightnet |
-| `ARCHIVE_NODE_API_VERSION` | 0.0.6 | Archive GraphQL API version (`@o1-labs/mina-archive-node-graphql`) |
-| `MINA_ACCOUNTS_MANAGER_VERSION` | 0.1.1 | Accounts manager version |
+| `MINA_PROFILE` | devnet | Deb network/profile: installs `mina-<profile>-generic` + `mina-archive-<profile>` |
+| `MINA_EXTRA_PROFILE` | (empty) | Variant deb suffix, e.g. `lightnet` → `mina-devnet-generic-lightnet` (nightly only) |
+| `MINA_RUNTIME_PROFILE` | (empty) | Written to `/etc/coda/build_config/PROFILE` (Mina >= 4.0.2 runtime profile) |
+| `MINA_DEB_VERSION` | (empty) | Exact deb version pin (e.g. `4.0.2-84b8d96`); empty = newest in component |
+| `ARCHIVE_NODE_API_VERSION` | 2.0.0 | Archive GraphQL API version (`@o1-labs/mina-archive-node-graphql`, needs Node >= 22.12) |
+| `MINA_ACCOUNTS_MANAGER_VERSION` | 0.1.2 | Accounts manager version |
 | `EXPLORER_VERSION` | v0.2.2 | Mina Lightweight Explorer version |
 
 ### Runtime Environment Variables
@@ -68,6 +80,7 @@ Profiles: `devnet` (full proofs), `lightnet` (no proofs)
 | `PROOF_LEVEL` | full | full or none |
 | `LOG_LEVEL` | Trace | Trace/Debug/Info/Warn/Error |
 | `RUN_ARCHIVE_NODE` | true | Enable archive node + PostgreSQL |
+| `ARCHIVE_API_*` | see README | Archive-Node-API 2.x knobs; container defaults open CORS (`*`), introspection, GraphiQL, zkappCommands, and disable rate limiting |
 | `SLOT_TIME` | 20000 | Block slot time in ms |
 
 ### Exposed Ports
@@ -122,6 +135,8 @@ The integration test (`scripts/test-image.sh`) verifies: daemon sync, accounts m
 - **Genesis ledger accounts.** `daemon.json` contains ~1007 accounts. 1000 have `sk` populated; 7 infrastructure accounts (online/offline whales, fish, snark coordinator) have `sk: null`.
 - **Key-pairs directory** contains 1003 encrypted wallet files (JSON format with `xsalsa20poly1305` encryption). Password for all keys: `naughty blue worm`.
 - **mina-local-network.sh** is downloaded from the Mina repo at a pinned commit (`MINA_COMMIT` in Dockerfile). It is NOT part of this repo. In `--demo` mode with `--config inherit`, it preserves pre-existing config at `~/.mina-network/` and runs a single seed node.
+- **Do not bump `MINA_COMMIT` casually.** The script was rewritten upstream after the pinned commit (`aa93c44`, Nov 2025): flags that `spinup-testnet.sh` uses (`-sp`, `--demo`, `-a/--archive`, `-u`) no longer exist at Mina 4.0.2. The pinned script still drives the 4.0.2 daemon; a bump needs a matching rewrite of `spinup-testnet.sh`.
+- **Stable repo at 4.0.2 is amd64 only** and has no `mina-devnet-generic-lightnet`. Use `--mina-runtime-profile lightnet` (writes the PROFILE hint) instead of `--mina-extra-profile`. The 4.0.2 debs are tent metapackages: `mina-devnet-generic` → `mina-generic` + `mina-devnet-profile`; `mina-archive-devnet` → `mina-archive-generic` + `mina-devnet-profile`.
 
 ## Key Conventions
 

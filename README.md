@@ -71,6 +71,14 @@ Configure the container behavior using these environment variables:
 | `POSTGRES_USER` | `postgres` | PostgreSQL username for archive database |
 | `POSTGRES_PASSWORD` | `postgres` | PostgreSQL password for archive database |
 | `POSTGRES_DB` | `archive` | PostgreSQL database name for archive data |
+| `ARCHIVE_API_CORS_ORIGIN` | `*` | `CORS_ORIGIN` of the Archive-Node-API. Unset in the API means same-origin only; `*` allows any browser origin |
+| `ARCHIVE_API_ENABLE_INTROSPECTION` | `true` | Allow GraphQL schema introspection on the Archive-Node-API |
+| `ARCHIVE_API_ENABLE_GRAPHIQL` | `true` | Serve the GraphiQL playground at `http://localhost:8282/` |
+| `ARCHIVE_API_ENABLE_ZKAPP_COMMANDS_QUERY` | `true` | Expose the `zkappCommands` range query of the Archive-Node-API |
+| `ARCHIVE_API_ENABLE_BLOCK_TRANSACTION_DETAILS` | `true` | Include `userCommands` / `zkappCommands` / `feeTransfers` in `blocks` |
+| `ARCHIVE_API_RATE_LIMIT_MAX` | `0` | Archive-Node-API requests per client IP per minute. `0` disables rate limiting |
+
+The `ARCHIVE_API_*` variables map to the environment variables of [Archive-Node-API](https://github.com/o1-labs/Archive-Node-API/blob/main/docs/getting-started.md#configuration) 2.x, which is secure by default. The container opens them for local development.
 
 ### Example with Custom Configuration
 
@@ -401,19 +409,25 @@ jobs:
 Image tags follow this naming convention:
 
 ```
-o1labs/mina-local-network:<branch>-latest-<profile>
+o1labs/mina-local-network:<branch>-latest-<profile>     # nightly builds
+o1labs/mina-local-network:<mina-version>-<profile>      # stable releases
 ```
 
 Examples:
-- `compatible-latest-lightnet` - Compatible branch with lightnet profile (no proofs, fast)
-- `compatible-latest-devnet` - Compatible branch with devnet profile (full proofs)
-- `develop-latest-lightnet` - Develop branch with lightnet profile
+- `4.0.2-lightnet` - Mina stable release 4.0.2 with lightnet profile (no proofs, fast)
+- `4.0.2-devnet` - Mina stable release 4.0.2 with devnet profile (full proofs)
+- `master-latest-lightnet` - Newest stable release with lightnet profile (alias of the newest `<mina-version>-lightnet`)
+- `compatible-latest-lightnet` - Compatible branch nightly with lightnet profile
+- `develop-latest-devnet` - Develop branch nightly with devnet profile
 
 Where:
-- **Branch prefix** (`compatible`, `develop`, `master`): Corresponds to the Mina GitHub repository branch
-- **Profile suffix** (`lightnet`, `devnet`): The Dune profile used during the build
+- **Branch prefix** (`compatible`, `develop`): Corresponds to the Mina GitHub repository branch (nightly apt repo)
+- **Version prefix** (`4.0.2`) or `master`: A stable Mina release (stable apt repo)
+- **Profile suffix** (`lightnet`, `devnet`): The Mina profile the daemon runs with
   - `lightnet`: Proof level set to `none`, faster for testing
   - `devnet`: Full proof generation
+
+Stable release images are amd64 only, because the stable apt repo publishes amd64 debs only (as of 4.0.2). Nightly images are amd64 and arm64.
 
 ## Building Images
 
@@ -428,10 +442,21 @@ Where:
   --archs "amd64,arm64" \
   --mina-release nightly \
   --target-branches "compatible,develop" \
-  --archive-api-version "0.0.6" \
-  --accounts-manager-version "0.1.1" \
+  --archive-api-version "2.0.0" \
+  --accounts-manager-version "0.1.2" \
   --docker-hub-user "o1labs" \
   --docker-scripts-dir "./"
+```
+
+To build from a stable Mina release instead of nightlies (tags `master-latest-<profile>`):
+
+```shell
+./scripts/build-all.sh \
+  --archs "amd64" \
+  --mina-release stable \
+  --target-branches "master" \
+  --mina-deb-version "4.0.2-84b8d96" \
+  --docker-hub-user "o1labs"
 ```
 
 #### Build Script Options
@@ -439,7 +464,7 @@ Where:
 | Option | Description |
 |--------|-------------|
 | `--archs` | Target architectures (comma-separated: `amd64`, `arm64`) |
-| `--mina-release` | Release type: `nightly`, `alpha`, or `beta` |
+| `--mina-release` | Release type: `nightly`, `alpha`, `beta`, or `stable` |
 | `--target-branches` | Mina branches to build (comma-separated) |
 | `--archive-api-version` | Version of Archive-Node-API |
 | `--accounts-manager-version` | Version of Mina Accounts Manager |
@@ -448,6 +473,7 @@ Where:
 | `--skip-push` | Build without pushing to Docker Hub |
 | `--no-cache` | Disable Docker build cache |
 | `--extra-docker-suffix` | Extra suffix for image tags |
+| `--mina-deb-version` | Exact Mina deb version to install (e.g. `4.0.2-84b8d96`). Default: newest in the apt component |
 
 ### Build Single Image
 
@@ -458,9 +484,32 @@ Where:
   --mina-branch compatible \
   --mina-profile devnet \
   --proof-level none \
-  --archive-api-version "0.0.6" \
-  --accounts-manager-version "0.1.1" \
+  --archive-api-version "2.0.0" \
+  --accounts-manager-version "0.1.2" \
   --docker-user "o1labs" \
   --tag "compatible-latest-lightnet" \
   --skip-push
+```
+
+Stable release example. The stable apt repo has no lightnet variant deb, so the lightnet image installs the devnet debs and selects the `lightnet` profile at runtime (`--mina-runtime-profile`, Mina >= 4.0.2). `--tag` accepts a comma-separated list:
+
+```shell
+./scripts/build-image.sh \
+  --archs "amd64" \
+  --mina-release stable \
+  --mina-deb-version "4.0.2-84b8d96" \
+  --mina-profile devnet \
+  --mina-runtime-profile lightnet \
+  --proof-level none \
+  --docker-user "o1labs" \
+  --tag "4.0.2-lightnet,master-latest-lightnet"
+```
+
+### Publish a Stable Release
+
+The manual GitHub Actions workflow `.github/workflows/build-release.yml` builds and pushes both images of a stable release:
+
+```shell
+gh workflow run build-release.yml --ref develop \
+  -f mina_version=4.0.2 -f mina_deb_version=4.0.2-84b8d96 -f archs=amd64
 ```

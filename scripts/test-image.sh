@@ -14,6 +14,9 @@ DAEMON_PORT=8080
 ACCOUNTS_MANAGER_PORT=8181
 ARCHIVE_API_PORT=8282
 POSTGRES_PORT=5432
+# Host-side port for PostgreSQL. Override when 5432 is taken on the host;
+# the DB checks below go through `docker exec`, so any free port works.
+POSTGRES_HOST_PORT="${POSTGRES_HOST_PORT:-${POSTGRES_PORT}}"
 
 DAEMON_URL="http://127.0.0.1:${DAEMON_PORT}/graphql"
 ACCOUNTS_MANAGER_URL="http://127.0.0.1:${ACCOUNTS_MANAGER_PORT}"
@@ -89,7 +92,7 @@ docker run -d \
   -p "${DAEMON_PORT}:${DAEMON_PORT}" \
   -p "${ACCOUNTS_MANAGER_PORT}:${ACCOUNTS_MANAGER_PORT}" \
   -p "${ARCHIVE_API_PORT}:${ARCHIVE_API_PORT}" \
-  -p "${POSTGRES_PORT}:${POSTGRES_PORT}" \
+  -p "${POSTGRES_HOST_PORT}:${POSTGRES_PORT}" \
   --env NETWORK_TYPE=single-node \
   --env PROOF_LEVEL="${PROOF_LEVEL}" \
   --env RUN_ARCHIVE_NODE=true \

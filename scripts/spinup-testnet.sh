@@ -53,7 +53,19 @@ start-archive-node-api() {
   echo "Starting the Archive-Node-API service..."
   echo "Archive-Node-API log file: ${ARCHIVE_NODE_API_LOG_FILE_PATH}"
   echo ""
-  PORT=${ARCHIVE_NODE_API_PORT} PG_CONN="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:${RDBMS_PORT}/${POSTGRES_DB}" mina-archive-node-graphql >${ARCHIVE_NODE_API_LOG_FILE_PATH} 2>&1 &
+  # Development-network defaults for @o1-labs/mina-archive-node-graphql >= 2.0.0,
+  # which is secure-by-default: no CORS, no introspection, no GraphiQL and a
+  # per-IP rate limit. A local test network wants all of them open.
+  # Override any of them with --env on `docker run`.
+  PORT=${ARCHIVE_NODE_API_PORT} \
+    PG_CONN="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:${RDBMS_PORT}/${POSTGRES_DB}" \
+    CORS_ORIGIN="${ARCHIVE_API_CORS_ORIGIN:-*}" \
+    ENABLE_INTROSPECTION="${ARCHIVE_API_ENABLE_INTROSPECTION:-true}" \
+    ENABLE_GRAPHIQL="${ARCHIVE_API_ENABLE_GRAPHIQL:-true}" \
+    ENABLE_ZKAPP_COMMANDS_QUERY="${ARCHIVE_API_ENABLE_ZKAPP_COMMANDS_QUERY:-true}" \
+    ENABLE_BLOCK_TRANSACTION_DETAILS="${ARCHIVE_API_ENABLE_BLOCK_TRANSACTION_DETAILS:-true}" \
+    RATE_LIMIT_MAX="${ARCHIVE_API_RATE_LIMIT_MAX:-0}" \
+    mina-archive-node-graphql >${ARCHIVE_NODE_API_LOG_FILE_PATH} 2>&1 &
   wait-for-service ${ARCHIVE_NODE_API_PORT}
   echo ""
 }
