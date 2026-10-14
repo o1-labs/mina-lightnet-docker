@@ -6,13 +6,15 @@ set -euo pipefail
 ARCHS=""
 MINA_RELEASE="stable"
 MINA_BRANCH=""
-ARCHIVE_NODE_API_VERSION="0.0.6"
+ARCHIVE_NODE_API_VERSION="2.0.0"
 PROOF_LEVEL="full"
 DOCKER_HUB_USER_NAME=""
 DOCKER_HUB_IMAGE_TAG=""
-ACCOUNTS_MANAGER_VERSION="v1.0.0"
+ACCOUNTS_MANAGER_VERSION="0.1.2"
 MINA_PROFILE="devnet"
 MINA_EXTRA_PROFILE=""
+MINA_RUNTIME_PROFILE=""
+MINA_DEB_VERSION=""
 EXPLORER_VERSION="v0.2.2"
 PUSH=1
 NO_CACHE=0
@@ -23,14 +25,16 @@ usage() {
   echo ""
   echo "Options:"
   echo "  -a, --archs ARCHS                     Architecture (required)"
-  echo "  -m, --mina-release VERSION            Mina release (required)"
-  echo "  -b, --mina-branch BRANCH              Mina branch (optional)"
+  echo "  -m, --mina-release VERSION            Mina release: nightly, alpha, beta, stable (required)"
+  echo "  -b, --mina-branch BRANCH              Mina branch = apt component (nightly only; alpha/beta/stable set it)"
+  echo "      --mina-deb-version VERSION         Exact mina deb version to install, e.g. 4.0.2-84b8d96 (optional)"
   echo "  -n, --archive-api-version PATH        Archive-Node-API version (required)"
   echo "  -p, --proof-level LEVEL               Proof level (required)"
   echo "  -u, --docker-user USER                Docker Hub user name (required)"
-  echo "  -t, --tag TAG                         Docker Hub image tag (required)"
-  echo "      --mina-profile PROFILE            Mina profile (optional, default: devnet)"
-  echo "      --mina-extra-profile EXTRA_PROFILE Extra Mina profile (optional)"
+  echo "  -t, --tag TAG[,TAG...]                Docker Hub image tag(s), comma-separated (required)"
+  echo "      --mina-profile PROFILE            Mina profile = deb network (optional, default: devnet)"
+  echo "      --mina-extra-profile EXTRA_PROFILE Extra Mina profile; installs the mina-<profile>-generic-<extra> variant deb (nightly only)"
+  echo "      --mina-runtime-profile PROFILE    Runtime profile written to /etc/coda/build_config/PROFILE (Mina >= 4.0.2; e.g. lightnet)"
   echo "  -c, --accounts-manager-version PATH   Accounts-Manager version (optional)"
   echo "      --explorer-version VERSION         Lightweight Explorer version (optional, default: v0.2.2)"
   echo "  -s, --skip-push                       Skip pushing the image to Docker Hub (optional, default: false)"
@@ -38,7 +42,7 @@ usage() {
   echo "  -h, --help                            Display this help message"
   echo ""
   echo "Example:"
-  echo "  $0 --archs arm64,amd64 --mina-version 3.3.0*  --archive-api-version v1.0.0 --proof-level full --accounts-manager-version 1.0.0 --docker-user myuser --tag latest"
+  echo "  $0 --archs amd64 --mina-release stable --mina-deb-version 4.0.2-84b8d96 --mina-runtime-profile lightnet --proof-level none --docker-user myuser --tag 4.0.2-lightnet"
 }
 
 # Parse command line arguments
@@ -66,6 +70,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --mina-extra-profile)
       MINA_EXTRA_PROFILE="$2"
+      shift 2
+      ;;
+    --mina-runtime-profile)
+      MINA_RUNTIME_PROFILE="$2"
+      shift 2
+      ;;
+    --mina-deb-version)
+      MINA_DEB_VERSION="$2"
       shift 2
       ;;
     -p|--proof-level)
@@ -160,8 +172,13 @@ case $MINA_RELEASE in
     MINA_REPO="https://unstable.apt.packages.minaprotocol.com"
     MINA_BRANCH="beta"
     ;;
+  "stable")
+    echo "Using STABLE Mina release."
+    MINA_REPO="https://stable.apt.packages.minaprotocol.com"
+    MINA_BRANCH="stable"
+    ;;
   *)
-    echo "Error: Unsupported MINA_RELEASE value: $MINA_RELEASE. Supported values are: STABLE, NIGHTLY."
+    echo "Error: Unsupported MINA_RELEASE value: $MINA_RELEASE. Supported values are: nightly, alpha, beta, stable."
     exit 1
     ;;
 esac
@@ -181,24 +198,42 @@ echo ""
 echo "Building the Docker image..."
 echo ""
 
-docker rmi -f ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG} || true
+# Image references (one per comma-separated tag)
+TAG_ARGS=()
+IFS=',' read -ra TAG_ARRAY <<< "$DOCKER_HUB_IMAGE_TAG"
+for tag in "${TAG_ARRAY[@]}"; do
+  docker rmi -f "${DOCKER_HUB_USER_NAME}/mina-local-network:${tag}" || true
+  TAG_ARGS+=(-t "${DOCKER_HUB_USER_NAME}/mina-local-network:${tag}")
+done
 docker rmi -f mina-local-network || true
 
-EXTRA_PROFILE_ARG=""
+BUILD_ARGS=(
+  "--build-arg=MINA_PROFILE=${MINA_PROFILE}"
+  "--build-arg=MINA_REPO=${MINA_REPO}"
+  "--build-arg=MINA_BRANCH=${MINA_BRANCH}"
+  "--build-arg=ARCHIVE_NODE_API_VERSION=${ARCHIVE_NODE_API_VERSION}"
+  "--build-arg=MINA_ACCOUNTS_MANAGER_VERSION=${ACCOUNTS_MANAGER_VERSION}"
+  "--build-arg=PROOF_LEVEL=${PROOF_LEVEL}"
+  "--build-arg=EXPLORER_VERSION=${EXPLORER_VERSION}"
+)
 if [[ -n "$MINA_EXTRA_PROFILE" ]]; then
-  EXTRA_PROFILE_ARG="--build-arg=MINA_EXTRA_PROFILE=${MINA_EXTRA_PROFILE}"
+  BUILD_ARGS+=("--build-arg=MINA_EXTRA_PROFILE=${MINA_EXTRA_PROFILE}")
 fi
-
-NO_CACHE_ARG=""
+if [[ -n "$MINA_RUNTIME_PROFILE" ]]; then
+  BUILD_ARGS+=("--build-arg=MINA_RUNTIME_PROFILE=${MINA_RUNTIME_PROFILE}")
+fi
+if [[ -n "$MINA_DEB_VERSION" ]]; then
+  BUILD_ARGS+=("--build-arg=MINA_DEB_VERSION=${MINA_DEB_VERSION}")
+fi
 if [[ $NO_CACHE -eq 1 ]]; then
-  NO_CACHE_ARG="--no-cache"
+  BUILD_ARGS+=(--no-cache)
 fi
 
 if [[ $PUSH -eq 1 ]]; then
   echo ""
   echo "Publishing the Docker image..."
   echo ""
-  docker buildx build --platform ${PLATFORMS} --push ${NO_CACHE_ARG} -t ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG} --build-arg="MINA_PROFILE=${MINA_PROFILE}" --build-arg="MINA_REPO=${MINA_REPO}" --build-arg="MINA_BRANCH=${MINA_BRANCH}" --build-arg="ARCHIVE_NODE_API_TAG=${ARCHIVE_NODE_API_VERSION}" --build-arg="MINA_ACCOUNTS_MANAGER_VERSION=${ACCOUNTS_MANAGER_VERSION}" --build-arg="PROOF_LEVEL=${PROOF_LEVEL}" --build-arg="EXPLORER_VERSION=${EXPLORER_VERSION}" ${EXTRA_PROFILE_ARG} . -f configuration/Dockerfile
+  docker buildx build --platform "${PLATFORMS}" --push "${TAG_ARGS[@]}" "${BUILD_ARGS[@]}" . -f configuration/Dockerfile
 else
   echo ""
   echo "Skipping the Docker image publishing step as requested."
@@ -223,7 +258,7 @@ else
   echo "Building only for current architecture to enable local loading..."
   echo ""
 
-  docker buildx build --platform linux/${DETECTED_ARCH} --load ${NO_CACHE_ARG} -t ${DOCKER_HUB_USER_NAME}/mina-local-network:${DOCKER_HUB_IMAGE_TAG} --build-arg="MINA_PROFILE=${MINA_PROFILE}" --build-arg="MINA_REPO=${MINA_REPO}" --build-arg="MINA_BRANCH=${MINA_BRANCH}" --build-arg="ARCHIVE_NODE_API_TAG=${ARCHIVE_NODE_API_VERSION}" --build-arg="MINA_ACCOUNTS_MANAGER_VERSION=${ACCOUNTS_MANAGER_VERSION}" --build-arg="PROOF_LEVEL=${PROOF_LEVEL}" --build-arg="EXPLORER_VERSION=${EXPLORER_VERSION}" ${EXTRA_PROFILE_ARG} . -f configuration/Dockerfile
+  docker buildx build --platform "linux/${DETECTED_ARCH}" --load "${TAG_ARGS[@]}" "${BUILD_ARGS[@]}" . -f configuration/Dockerfile
 fi
 
 END=$(date +%s)

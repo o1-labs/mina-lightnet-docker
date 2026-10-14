@@ -1,0 +1,99 @@
+name: Build and publish Mina lightweight network Docker images (stable release)
+
+# Manual-dispatch only. Builds the devnet (full-proof) and lightnet (no-proof)
+# images from a stable Mina release in the stable apt repo and pushes them to
+# Docker Hub as:
+#   o1labs/mina-local-network:<mina_version>-devnet   + master-latest-devnet
+#   o1labs/mina-local-network:<mina_version>-lightnet + master-latest-lightnet
+#
+# The stable repo publishes devnet-profile debs only (mina-devnet-generic,
+# mina-archive-devnet, mina-logproc) and, as of 4.0.2, amd64 only. The lightnet
+# image installs the same debs and selects the lightnet profile at runtime
+# (--mina-runtime-profile), because stable has no lightnet variant deb.
+on:
+  workflow_dispatch:
+    inputs:
+      mina_version:
+        description: "Mina release version, used as Docker tag prefix (e.g. 4.0.2)"
+        required: true
+        default: "4.0.2"
+      mina_deb_version:
+        description: "Exact deb version to install from the stable repo (e.g. 4.0.2-84b8d96). Empty = newest"
+        required: false
+        default: "4.0.2-84b8d96"
+      archs:
+        description: "Target architectures (comma-separated). Stable debs are amd64 only as of 4.0.2"
+        required: true
+        default: "amd64"
+      archive_api_version:
+        description: "@o1-labs/mina-archive-node-graphql npm version"
+        required: true
+        default: "2.0.0"
+      accounts_manager_version:
+        description: "Mina Accounts Manager version"
+        required: true
+        default: "0.1.2"
+      also_tag_master_latest:
+        description: "Also push master-latest-devnet / master-latest-lightnet"
+        type: boolean
+        required: true
+        default: true
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (for non-native archs)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USER }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+      - name: Compute tags
+        id: tags
+        run: |
+          devnet="${{ inputs.mina_version }}-devnet"
+          lightnet="${{ inputs.mina_version }}-lightnet"
+          if [[ "${{ inputs.also_tag_master_latest }}" == "true" ]]; then
+            devnet="${devnet},master-latest-devnet"
+            lightnet="${lightnet},master-latest-lightnet"
+          fi
+          echo "devnet=${devnet}" >> "$GITHUB_OUTPUT"
+          echo "lightnet=${lightnet}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push devnet (full proofs)
+        run: |
+          ./scripts/build-image.sh \
+            --archs "${{ inputs.archs }}" \
+            --mina-release stable \
+            --mina-deb-version "${{ inputs.mina_deb_version }}" \
+            --mina-profile devnet \
+            --proof-level full \
+            --archive-api-version "${{ inputs.archive_api_version }}" \
+            --accounts-manager-version "${{ inputs.accounts_manager_version }}" \
+            --docker-user o1labs \
+            --tag "${{ steps.tags.outputs.devnet }}"
+
+      - name: Build and push lightnet (no proofs)
+        run: |
+          ./scripts/build-image.sh \
+            --archs "${{ inputs.archs }}" \
+            --mina-release stable \
+            --mina-deb-version "${{ inputs.mina_deb_version }}" \
+            --mina-profile devnet \
+            --mina-runtime-profile lightnet \
+            --proof-level none \
+            --archive-api-version "${{ inputs.archive_api_version }}" \
+            --accounts-manager-version "${{ inputs.accounts_manager_version }}" \
+            --docker-user o1labs \
+            --tag "${{ steps.tags.outputs.lightnet }}"
