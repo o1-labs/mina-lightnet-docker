@@ -46,7 +46,7 @@ docker run --rm --pull=always -it \
   -p 8080:8080 \
   -p 8181:8181 \
   -p 8282:8282 \
-  o1labs/mina-local-network:compatible-latest-lightnet
+  o1labs/mina-local-network:latest-lightnet
 ```
 
 Wait for the network to synchronize (1-2 minutes for single-node), then connect your application to `http://127.0.0.1:8080/graphql`.
@@ -94,7 +94,7 @@ docker run --rm --pull=always -it \
   -p 8080:8080 \
   -p 8181:8181 \
   -p 8282:8282 \
-  o1labs/mina-local-network:compatible-latest-lightnet
+  o1labs/mina-local-network:latest-lightnet
 ```
 
 ### Disabling Archive Node
@@ -125,7 +125,7 @@ docker run --rm --pull=always -it \
   -p 8080:8080 \
   -p 8181:8181 \
   -p 8282:8282 \
-  o1labs/mina-local-network:compatible-latest-lightnet
+  o1labs/mina-local-network:latest-lightnet
 ```
 
 #### Single Node Network Properties
@@ -194,7 +194,7 @@ docker run --rm --pull=always -it \
  -p 8080:8080 \
  -p 8181:8181 \
  -p 8282:8282 \
- o1labs/mina-local-network:compatible-latest-lightnet
+ o1labs/mina-local-network:latest-lightnet
 ```
 
 #### Multi-Node Network Properties
@@ -372,7 +372,7 @@ jobs:
   my-job:
     services:
       mina-local-network:
-        image: o1labs/mina-local-network:compatible-latest-lightnet
+        image: o1labs/mina-local-network:latest-lightnet
         env:
           NETWORK_TYPE: 'single-node'
           PROOF_LEVEL: 'none'
@@ -409,25 +409,29 @@ jobs:
 Image tags follow this naming convention:
 
 ```
-o1labs/mina-local-network:<branch>-latest-<profile>     # nightly builds
-o1labs/mina-local-network:<mina-version>-<profile>      # stable releases
+o1labs/mina-local-network:<mina-version>-<profile>      # a Mina release (recommended: pin it)
+o1labs/mina-local-network:latest-<profile>              # alias of the newest stable release
+o1labs/mina-local-network:next-<profile>                # alias of the newest pre-release (alpha/beta)
 ```
 
 Examples:
-- `4.0.2-lightnet` - Mina stable release 4.0.2 with lightnet profile (no proofs, fast)
-- `4.0.2-devnet` - Mina stable release 4.0.2 with devnet profile (full proofs)
-- `master-latest-lightnet` - Newest stable release with lightnet profile (alias of the newest `<mina-version>-lightnet`)
-- `compatible-latest-lightnet` - Compatible branch nightly with lightnet profile
-- `develop-latest-devnet` - Develop branch nightly with devnet profile
+- `4.0.4-lightnet` - Mina stable release 4.0.4 with lightnet profile (no proofs, fast)
+- `4.0.4-devnet` - Mina stable release 4.0.4 with devnet profile (full proofs)
+- `latest-lightnet` - Newest stable release with lightnet profile (alias of the newest `<mina-version>-lightnet`)
+- `next-lightnet` - Newest pre-release with lightnet profile, for example the first builds of a post-hardfork Mina version. Published only while such a pre-release exists.
+
+Legacy aliases, kept so that existing setups keep working:
+- `master-latest-<profile>` - Same image as `latest-<profile>`, updated with every stable release.
+- `compatible-latest-<profile>` - Used to track the `compatible` branch nightlies. It was moved to the stable release 4.0.4 (Mesa) once and is **not updated anymore**. Switch to `latest-<profile>` or to a pinned `<mina-version>-<profile>`.
+- `develop-latest-<profile>` - Former nightly build of the `develop` branch. Nightly images are not published anymore; the tag is stale (May 2026). Do not use it.
 
 Where:
-- **Branch prefix** (`compatible`, `develop`): Corresponds to the Mina GitHub repository branch (nightly apt repo)
-- **Version prefix** (`4.0.2`) or `master`: A stable Mina release (stable apt repo)
+- **Version prefix** (`4.0.4`, `4.1.0-beta1`), `latest` or `next`: A Mina release from the stable or unstable apt repo
 - **Profile suffix** (`lightnet`, `devnet`): The Mina profile the daemon runs with
   - `lightnet`: Proof level set to `none`, faster for testing
   - `devnet`: Full proof generation
 
-Stable release images are amd64 only, because the stable apt repo publishes amd64 debs only (as of 4.0.2). Nightly images are amd64 and arm64.
+Images are amd64 only, because the stable apt repo publishes amd64 debs only (as of 4.0.2).
 
 ## Building Images
 
@@ -437,25 +441,14 @@ Stable release images are amd64 only, because the stable apt repo publishes amd6
 
 ### Build All Images
 
-```shell
-./scripts/build-all.sh \
-  --archs "amd64,arm64" \
-  --mina-release nightly \
-  --target-branches "compatible,develop" \
-  --archive-api-version "2.0.0" \
-  --accounts-manager-version "0.1.2" \
-  --docker-hub-user "o1labs" \
-  --docker-scripts-dir "./"
-```
-
-To build from a stable Mina release instead of nightlies (tags `master-latest-<profile>`):
+Builds the devnet and the lightnet image of a stable Mina release (tags `master-latest-<profile>`):
 
 ```shell
 ./scripts/build-all.sh \
   --archs "amd64" \
   --mina-release stable \
   --target-branches "master" \
-  --mina-deb-version "4.0.2-84b8d96" \
+  --mina-deb-version "4.0.4-c9e2eac" \
   --docker-hub-user "o1labs"
 ```
 
@@ -464,7 +457,7 @@ To build from a stable Mina release instead of nightlies (tags `master-latest-<p
 | Option | Description |
 |--------|-------------|
 | `--archs` | Target architectures (comma-separated: `amd64`, `arm64`) |
-| `--mina-release` | Release type: `nightly`, `alpha`, `beta`, or `stable` |
+| `--mina-release` | Release type: `stable`, `alpha` or `beta`. `nightly` is still accepted by the scripts, but no images are published from nightlies anymore |
 | `--target-branches` | Mina branches to build (comma-separated) |
 | `--archive-api-version` | Version of Archive-Node-API |
 | `--accounts-manager-version` | Version of Mina Accounts Manager |
@@ -477,39 +470,36 @@ To build from a stable Mina release instead of nightlies (tags `master-latest-<p
 
 ### Build Single Image
 
-```shell
-./scripts/build-image.sh \
-  --archs "amd64" \
-  --mina-release nightly \
-  --mina-branch compatible \
-  --mina-profile devnet \
-  --proof-level none \
-  --archive-api-version "2.0.0" \
-  --accounts-manager-version "0.1.2" \
-  --docker-user "o1labs" \
-  --tag "compatible-latest-lightnet" \
-  --skip-push
-```
-
-Stable release example. The stable apt repo has no lightnet variant deb, so the lightnet image installs the devnet debs and selects the `lightnet` profile at runtime (`--mina-runtime-profile`, Mina >= 4.0.2). `--tag` accepts a comma-separated list:
+The stable and unstable apt repos have no lightnet variant deb, so the lightnet image installs the devnet debs and selects the `lightnet` profile at runtime (`--mina-runtime-profile`, Mina >= 4.0.2). `--tag` accepts a comma-separated list:
 
 ```shell
 ./scripts/build-image.sh \
   --archs "amd64" \
   --mina-release stable \
-  --mina-deb-version "4.0.2-84b8d96" \
+  --mina-deb-version "4.0.4-c9e2eac" \
   --mina-profile devnet \
   --mina-runtime-profile lightnet \
   --proof-level none \
   --docker-user "o1labs" \
-  --tag "4.0.2-lightnet,master-latest-lightnet"
+  --tag "4.0.4-lightnet,latest-lightnet,master-latest-lightnet"
 ```
 
 ### Publish a Stable Release
 
-The manual GitHub Actions workflow `.github/workflows/build-release.yml` builds and pushes both images of a stable release:
+The manual GitHub Actions workflow `.github/workflows/build-release.yml` builds and pushes both images of a stable release, plus the `latest-<profile>` and `master-latest-<profile>` aliases:
 
 ```shell
 gh workflow run build-release.yml --ref develop \
-  -f mina_version=4.0.2 -f mina_deb_version=4.0.2-84b8d96 -f archs=amd64
+  -f mina_version=4.0.4 -f mina_deb_version=4.0.4-c9e2eac -f archs=amd64
+```
+
+Pass `-f also_tag_compatible_latest=true` only for the one-off move of the legacy `compatible-latest-<profile>` alias.
+
+### Publish a Pre-Release
+
+The manual GitHub Actions workflow `.github/workflows/build-prerelease.yml` builds and pushes both images of a Mina pre-release from the `alpha` or `beta` component of the unstable apt repo, plus the `next-<profile>` alias:
+
+```shell
+gh workflow run build-prerelease.yml --ref develop \
+  -f mina_release=beta -f mina_version=4.1.0-beta1 -f mina_deb_version=4.1.0-beta1-abc1234 -f archs=amd64
 ```
