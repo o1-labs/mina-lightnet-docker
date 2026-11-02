@@ -3,8 +3,13 @@ name: Build and publish Mina lightweight network Docker images (stable release)
 # Manual-dispatch only. Builds the devnet (full-proof) and lightnet (no-proof)
 # images from a stable Mina release in the stable apt repo and pushes them to
 # Docker Hub as:
-#   o1labs/mina-local-network:<mina_version>-devnet   + master-latest-devnet
-#   o1labs/mina-local-network:<mina_version>-lightnet + master-latest-lightnet
+#   o1labs/mina-local-network:<mina_version>-devnet   + latest-devnet   + master-latest-devnet
+#   o1labs/mina-local-network:<mina_version>-lightnet + latest-lightnet + master-latest-lightnet
+#
+# `latest-<profile>` and `master-latest-<profile>` are floating aliases of the
+# newest stable release. `compatible-latest-<profile>` is a legacy alias that
+# used to track the compatible branch nightlies; it was moved to the stable
+# release 4.0.4 once and is not updated anymore (see README "Image Tags").
 #
 # The stable repo publishes devnet-profile debs only (mina-devnet-generic,
 # mina-archive-devnet, mina-logproc) and, as of 4.0.2, amd64 only. The lightnet
@@ -16,11 +21,11 @@ on:
       mina_version:
         description: "Mina release version, used as Docker tag prefix (e.g. 4.0.2)"
         required: true
-        default: "4.0.2"
+        default: "4.0.4"
       mina_deb_version:
         description: "Exact deb version to install from the stable repo (e.g. 4.0.2-84b8d96). Empty = newest"
         required: false
-        default: "4.0.2-84b8d96"
+        default: "4.0.4-c9e2eac"
       archs:
         description: "Target architectures (comma-separated). Stable debs are amd64 only as of 4.0.2"
         required: true
@@ -33,11 +38,21 @@ on:
         description: "Mina Accounts Manager version"
         required: true
         default: "0.1.2"
+      also_tag_latest:
+        description: "Also push latest-devnet / latest-lightnet (newest stable release)"
+        type: boolean
+        required: true
+        default: true
       also_tag_master_latest:
         description: "Also push master-latest-devnet / master-latest-lightnet"
         type: boolean
         required: true
         default: true
+      also_tag_compatible_latest:
+        description: "Also push compatible-latest-devnet / compatible-latest-lightnet (legacy alias, one-off)"
+        type: boolean
+        required: true
+        default: false
 
 jobs:
   build-and-publish:
@@ -64,9 +79,17 @@ jobs:
         run: |
           devnet="${{ inputs.mina_version }}-devnet"
           lightnet="${{ inputs.mina_version }}-lightnet"
+          if [[ "${{ inputs.also_tag_latest }}" == "true" ]]; then
+            devnet="${devnet},latest-devnet"
+            lightnet="${lightnet},latest-lightnet"
+          fi
           if [[ "${{ inputs.also_tag_master_latest }}" == "true" ]]; then
             devnet="${devnet},master-latest-devnet"
             lightnet="${lightnet},master-latest-lightnet"
+          fi
+          if [[ "${{ inputs.also_tag_compatible_latest }}" == "true" ]]; then
+            devnet="${devnet},compatible-latest-devnet"
+            lightnet="${lightnet},compatible-latest-lightnet"
           fi
           echo "devnet=${devnet}" >> "$GITHUB_OUTPUT"
           echo "lightnet=${lightnet}" >> "$GITHUB_OUTPUT"

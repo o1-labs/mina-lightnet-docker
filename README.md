@@ -409,20 +409,24 @@ jobs:
 Image tags follow this naming convention:
 
 ```
-o1labs/mina-local-network:<branch>-latest-<profile>     # nightly builds
-o1labs/mina-local-network:<mina-version>-<profile>      # stable releases
+o1labs/mina-local-network:<mina-version>-<profile>      # stable releases (recommended)
+o1labs/mina-local-network:latest-<profile>              # alias of the newest stable release
+o1labs/mina-local-network:develop-latest-<profile>      # nightly build of the develop branch
 ```
 
 Examples:
-- `4.0.2-lightnet` - Mina stable release 4.0.2 with lightnet profile (no proofs, fast)
-- `4.0.2-devnet` - Mina stable release 4.0.2 with devnet profile (full proofs)
-- `master-latest-lightnet` - Newest stable release with lightnet profile (alias of the newest `<mina-version>-lightnet`)
-- `compatible-latest-lightnet` - Compatible branch nightly with lightnet profile
+- `4.0.4-lightnet` - Mina stable release 4.0.4 with lightnet profile (no proofs, fast)
+- `4.0.4-devnet` - Mina stable release 4.0.4 with devnet profile (full proofs)
+- `latest-lightnet` - Newest stable release with lightnet profile (alias of the newest `<mina-version>-lightnet`)
 - `develop-latest-devnet` - Develop branch nightly with devnet profile
 
+Legacy aliases, kept so that existing setups keep working:
+- `master-latest-<profile>` - Same image as `latest-<profile>`, updated with every stable release.
+- `compatible-latest-<profile>` - Used to track the `compatible` branch nightlies. It was moved to the stable release 4.0.4 (Mesa) once and is **not updated anymore**. Switch to `latest-<profile>` or to a pinned `<mina-version>-<profile>`.
+
 Where:
-- **Branch prefix** (`compatible`, `develop`): Corresponds to the Mina GitHub repository branch (nightly apt repo)
-- **Version prefix** (`4.0.2`) or `master`: A stable Mina release (stable apt repo)
+- **Version prefix** (`4.0.4`) or `latest`: A stable Mina release (stable apt repo)
+- **Branch prefix** (`develop`): Corresponds to the Mina GitHub repository branch (nightly apt repo)
 - **Profile suffix** (`lightnet`, `devnet`): The Mina profile the daemon runs with
   - `lightnet`: Proof level set to `none`, faster for testing
   - `devnet`: Full proof generation
@@ -441,7 +445,7 @@ Stable release images are amd64 only, because the stable apt repo publishes amd6
 ./scripts/build-all.sh \
   --archs "amd64,arm64" \
   --mina-release nightly \
-  --target-branches "compatible,develop" \
+  --target-branches "develop" \
   --archive-api-version "2.0.0" \
   --accounts-manager-version "0.1.2" \
   --docker-hub-user "o1labs" \
@@ -455,7 +459,7 @@ To build from a stable Mina release instead of nightlies (tags `master-latest-<p
   --archs "amd64" \
   --mina-release stable \
   --target-branches "master" \
-  --mina-deb-version "4.0.2-84b8d96" \
+  --mina-deb-version "4.0.4-c9e2eac" \
   --docker-hub-user "o1labs"
 ```
 
@@ -497,19 +501,21 @@ Stable release example. The stable apt repo has no lightnet variant deb, so the 
 ./scripts/build-image.sh \
   --archs "amd64" \
   --mina-release stable \
-  --mina-deb-version "4.0.2-84b8d96" \
+  --mina-deb-version "4.0.4-c9e2eac" \
   --mina-profile devnet \
   --mina-runtime-profile lightnet \
   --proof-level none \
   --docker-user "o1labs" \
-  --tag "4.0.2-lightnet,master-latest-lightnet"
+  --tag "4.0.4-lightnet,latest-lightnet,master-latest-lightnet"
 ```
 
 ### Publish a Stable Release
 
-The manual GitHub Actions workflow `.github/workflows/build-release.yml` builds and pushes both images of a stable release:
+The manual GitHub Actions workflow `.github/workflows/build-release.yml` builds and pushes both images of a stable release, plus the `latest-<profile>` and `master-latest-<profile>` aliases:
 
 ```shell
 gh workflow run build-release.yml --ref develop \
-  -f mina_version=4.0.2 -f mina_deb_version=4.0.2-84b8d96 -f archs=amd64
+  -f mina_version=4.0.4 -f mina_deb_version=4.0.4-c9e2eac -f archs=amd64
 ```
+
+Pass `-f also_tag_compatible_latest=true` only for the one-off move of the legacy `compatible-latest-<profile>` alias.

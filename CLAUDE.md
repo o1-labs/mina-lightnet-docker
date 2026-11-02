@@ -22,8 +22,8 @@ scripts/
   test-image.sh               # Integration test: services health, transaction lifecycle, archive verification
   wait-for-network.sh         # Polls GraphQL for syncStatus: SYNCED (max 60 attempts, 10s interval)
 .github/workflows/
-  build.yml                   # Push-to-develop/manual CI: builds nightly images for develop/compatible
-  build-release.yml           # Manual CI: builds <version>-{devnet,lightnet} + master-latest-* from a stable release
+  build.yml                   # Push-to-develop/manual CI: builds nightly images for develop only
+  build-release.yml           # Manual CI: builds <version>-{devnet,lightnet} + latest-* + master-latest-* from a stable release
   test.yml                    # PR CI: builds image and runs integration tests
 ```
 
@@ -49,7 +49,7 @@ scripts/
   --docker-user o1labs --tag 4.0.2-lightnet,master-latest-lightnet
 ```
 
-Image tag format: `o1labs/mina-local-network:<branch>-latest-<profile>[-suffix]` (nightly) or `:<mina-version>-<profile>` (stable; `master-latest-<profile>` = newest stable)
+Image tag format: `o1labs/mina-local-network:<mina-version>-<profile>` (stable; `latest-<profile>` and `master-latest-<profile>` = newest stable), `:develop-latest-<profile>[-suffix]` (nightly). `compatible-latest-<profile>` is a frozen legacy alias of 4.0.4.
 Profiles: `devnet` (full proofs), `lightnet` (no proofs)
 
 **Lightnet profile mechanics.** Nightly repo ships a variant deb `mina-devnet-generic-lightnet` (selected with `--mina-extra-profile lightnet`). The stable repo does not. Since Mina 4.0.2 the daemon is one network-free binary (`mina-generic`) that reads its profile from `/etc/coda/build_config/PROFILE` (or `MINA_PROFILE` env), so stable lightnet images install the devnet debs and write `lightnet` into that file (`--mina-runtime-profile lightnet`). `build-all.sh --mina-release stable` does this automatically.
