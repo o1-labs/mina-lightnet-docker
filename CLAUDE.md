@@ -22,37 +22,37 @@ scripts/
   test-image.sh               # Integration test: services health, transaction lifecycle, archive verification
   wait-for-network.sh         # Polls GraphQL for syncStatus: SYNCED (max 60 attempts, 10s interval)
 .github/workflows/
-  build.yml                   # Push-to-develop/manual CI: builds nightly images for develop only
   build-release.yml           # Manual CI: builds <version>-{devnet,lightnet} + latest-* + master-latest-* from a stable release
-  test.yml                    # PR CI: builds image and runs integration tests
+  build-prerelease.yml        # Manual CI: builds <version>-{devnet,lightnet} + next-* from an alpha/beta pre-release
+  test.yml                    # PR CI: builds both images from the newest stable release and runs integration tests
 ```
 
 ## Building
 
 ```bash
-# Build all images (nightly, multi-arch)
-./scripts/build-all.sh --target-branches "develop" --mina-release nightly
+# Build both images of a stable release (tags master-latest-*)
+./scripts/build-all.sh --target-branches "master" --mina-release stable --mina-deb-version 4.0.4-c9e2eac
 
-# Build single image locally (skip push)
-./scripts/build-all.sh --target-branches "develop" --mina-release nightly --skip-push
+# Same, locally (skip push)
+./scripts/build-all.sh --target-branches "master" --mina-release stable --mina-deb-version 4.0.4-c9e2eac --skip-push
 
 # Key build-all.sh flags:
-#   --target-branches   Mina branches (develop, compatible, master)
-#   --mina-release      Release type (nightly, alpha, beta, stable)
+#   --target-branches   Mina branches (master for stable; develop/compatible only with the unused nightly type)
+#   --mina-release      Release type (stable, alpha, beta; nightly is accepted but nothing is published from it)
 #   --mina-deb-version  Exact deb version to install (e.g. 4.0.2-84b8d96)
 #   --skip-push         Build locally, don't push to Docker Hub
 #   --no-cache          Disable Docker build cache
 
 # Build a stable release image (amd64 only; stable repo has no arm64 debs as of 4.0.2)
-./scripts/build-image.sh --archs amd64 --mina-release stable --mina-deb-version 4.0.2-84b8d96 \
+./scripts/build-image.sh --archs amd64 --mina-release stable --mina-deb-version 4.0.4-c9e2eac \
   --mina-profile devnet --mina-runtime-profile lightnet --proof-level none \
-  --docker-user o1labs --tag 4.0.2-lightnet,master-latest-lightnet
+  --docker-user o1labs --tag 4.0.4-lightnet,latest-lightnet,master-latest-lightnet
 ```
 
-Image tag format: `o1labs/mina-local-network:<mina-version>-<profile>` (stable; `latest-<profile>` and `master-latest-<profile>` = newest stable), `:develop-latest-<profile>[-suffix]` (nightly). `compatible-latest-<profile>` is a frozen legacy alias of 4.0.4.
+Image tag format: `o1labs/mina-local-network:<mina-version>-<profile>`. Floating aliases: `latest-<profile>` and `master-latest-<profile>` = newest stable, `next-<profile>` = newest alpha/beta pre-release. `compatible-latest-<profile>` is a frozen legacy alias of 4.0.4; `develop-latest-<profile>` is a stale former nightly. No nightly images are published anymore.
 Profiles: `devnet` (full proofs), `lightnet` (no proofs)
 
-**Lightnet profile mechanics.** Nightly repo ships a variant deb `mina-devnet-generic-lightnet` (selected with `--mina-extra-profile lightnet`). The stable repo does not. Since Mina 4.0.2 the daemon is one network-free binary (`mina-generic`) that reads its profile from `/etc/coda/build_config/PROFILE` (or `MINA_PROFILE` env), so stable lightnet images install the devnet debs and write `lightnet` into that file (`--mina-runtime-profile lightnet`). `build-all.sh --mina-release stable` does this automatically.
+**Lightnet profile mechanics.** Only the (unused) nightly repo ships a variant deb `mina-devnet-generic-lightnet` (selected with `--mina-extra-profile lightnet`). The stable and unstable repos do not. Since Mina 4.0.2 the daemon is one network-free binary (`mina-generic`) that reads its profile from `/etc/coda/build_config/PROFILE` (or `MINA_PROFILE` env), so stable lightnet images install the devnet debs and write `lightnet` into that file (`--mina-runtime-profile lightnet`). `build-all.sh --mina-release stable` does this automatically.
 
 ## Docker Image
 
@@ -118,8 +118,10 @@ Profiles: `devnet` (full proofs), `lightnet` (no proofs)
 
 ```bash
 # Build and run integration tests locally (builds image then runs test suite)
-./scripts/build-all.sh --target-branches "develop" --mina-release nightly --docker-hub-user test-local --skip-push
-./scripts/test-image.sh test-local/mina-local-network:develop-latest-lightnet
+./scripts/build-image.sh --archs amd64 --mina-release stable --mina-deb-version 4.0.4-c9e2eac \
+  --mina-profile devnet --mina-runtime-profile lightnet --proof-level none \
+  --archive-api-version 2.0.0 --docker-user test-local --tag 4.0.4-lightnet --skip-push
+./scripts/test-image.sh test-local/mina-local-network:4.0.4-lightnet
 ```
 
 CI runs automatically on PRs to develop via `.github/workflows/test.yml`.
