@@ -43,8 +43,8 @@ scripts/
 #   --skip-push         Build locally, don't push to Docker Hub
 #   --no-cache          Disable Docker build cache
 
-# Build a stable release image (amd64 only; stable repo has no arm64 debs as of 4.0.2)
-./scripts/build-image.sh --archs amd64 --mina-release stable --mina-deb-version 4.0.4-c9e2eac \
+# Build a stable release image (arm64 only for releases with Bookworm arm64 debs on stable: 4.0.4 yes, 4.0.2 no)
+./scripts/build-image.sh --archs amd64,arm64 --mina-release stable --mina-deb-version 4.0.4-c9e2eac \
   --mina-profile devnet --mina-runtime-profile lightnet --proof-level none \
   --docker-user o1labs --tag 4.0.4-lightnet,latest-lightnet,master-latest-lightnet
 ```
@@ -138,7 +138,7 @@ The integration test (`scripts/test-image.sh`) verifies: daemon sync, accounts m
 - **Key-pairs directory** contains 1003 encrypted wallet files (JSON format with `xsalsa20poly1305` encryption). Password for all keys: `naughty blue worm`.
 - **mina-local-network.sh** is downloaded from the Mina repo at a pinned commit (`MINA_COMMIT` in Dockerfile). It is NOT part of this repo. In `--demo` mode with `--config inherit`, it preserves pre-existing config at `~/.mina-network/` and runs a single seed node.
 - **Do not bump `MINA_COMMIT` casually.** The script was rewritten upstream after the pinned commit (`aa93c44`, Nov 2025): flags that `spinup-testnet.sh` uses (`-sp`, `--demo`, `-a/--archive`, `-u`) no longer exist at Mina 4.0.2. The pinned script still drives the 4.0.2 daemon; a bump needs a matching rewrite of `spinup-testnet.sh`.
-- **Stable repo at 4.0.2 is amd64 only** and has no `mina-devnet-generic-lightnet`. Use `--mina-runtime-profile lightnet` (writes the PROFILE hint) instead of `--mina-extra-profile`. The 4.0.2 debs are tent metapackages: `mina-devnet-generic` → `mina-generic` + `mina-devnet-profile`; `mina-archive-devnet` → `mina-archive-generic` + `mina-devnet-profile`.
+- **Stable repo architectures:** 4.0.2 and older are amd64 only. 4.0.4 also has Bookworm arm64 `mina-devnet-generic`, `mina-archive-devnet`, `mina-logproc` (and their dependencies), published by the separate arm64 release pipeline in MinaProtocol/mina. Stable has no `mina-devnet-generic-lightnet`. Use `--mina-runtime-profile lightnet` (writes the PROFILE hint) instead of `--mina-extra-profile`. The 4.0.2 debs are tent metapackages: `mina-devnet-generic` → `mina-generic` + `mina-devnet-profile`; `mina-archive-devnet` → `mina-archive-generic` + `mina-devnet-profile`.
 
 ## Key Conventions
 

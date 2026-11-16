@@ -431,7 +431,7 @@ Where:
   - `lightnet`: Proof level set to `none`, faster for testing
   - `devnet`: Full proof generation
 
-Images are amd64 only, because the stable apt repo publishes amd64 debs only (as of 4.0.2).
+Architectures: the `4.0.4-<profile>`, `latest-<profile>`, `master-latest-<profile>` and `compatible-latest-<profile>` images are built for `amd64` and `arm64` (Apple silicon runs them natively). Older release images, for example `4.0.2-<profile>`, are `amd64` only, because the stable apt repo has no `arm64` debs for those releases. On an `arm64` computer, pull them with `--platform linux/amd64` (or `DOCKER_DEFAULT_PLATFORM=linux/amd64`); Docker runs them in emulation.
 
 ## Building Images
 
