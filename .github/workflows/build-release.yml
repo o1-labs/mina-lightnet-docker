@@ -12,9 +12,18 @@ name: Build and publish Mina lightweight network Docker images (stable release)
 # release 4.0.4 once and is not updated anymore (see README "Image Tags").
 #
 # The stable repo publishes devnet-profile debs only (mina-devnet-generic,
-# mina-archive-devnet, mina-logproc) and, as of 4.0.2, amd64 only. The lightnet
-# image installs the same debs and selects the lightnet profile at runtime
-# (--mina-runtime-profile), because stable has no lightnet variant deb.
+# mina-archive-devnet, mina-logproc). The lightnet image installs the same debs
+# and selects the lightnet profile at runtime (--mina-runtime-profile), because
+# stable has no lightnet variant deb.
+#
+# Architectures: the Mina release pipelines publish amd64 debs for every
+# codename. Bookworm arm64 debs of the three packages above are published by a
+# separate arm64 release pipeline (MinaProtocol/mina, filters
+# PackagingArm64Lightnet and PublishArm64Lightnet). They exist for 4.0.4
+# (4.0.4-c9e2eac), not for 4.0.2 or older. Build arm64 only for a release whose
+# arm64 debs are on stable: check with
+#   curl -s https://stable.apt.packages.minaprotocol.com/dists/bookworm/stable/binary-arm64/Packages | grep -A1 '^Package: mina-devnet-generic$'
+# Without them, apt in the arm64 build fails and nothing is pushed.
 on:
   workflow_dispatch:
     inputs:
@@ -27,9 +36,9 @@ on:
         required: false
         default: "4.0.4-c9e2eac"
       archs:
-        description: "Target architectures (comma-separated). Stable debs are amd64 only as of 4.0.2"
+        description: "Target architectures (comma-separated). arm64 needs the Bookworm arm64 debs on stable (4.0.4: yes; 4.0.2: no)"
         required: true
-        default: "amd64"
+        default: "amd64,arm64"
       archive_api_version:
         description: "@o1-labs/mina-archive-node-graphql npm version"
         required: true
