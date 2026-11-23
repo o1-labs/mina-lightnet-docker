@@ -10,15 +10,12 @@ configuration/
   nginx.conf                  # NGINX reverse proxy with CORS support (port 8080)
   mina-local-network/
     daemon.json               # Genesis ledger (~1000 prefunded accounts, 1550 MINA each)
-    libp2p_keys/              # LibP2P peer identity keys
-    nodes/                    # Per-node configs (whale_0, whale_1, fish_0, seed, snark_coordinator, snark_workers, node_0, archive)
-    key-pairs/                # Pre-generated key pairs
-    offline_*_keys/           # Offline wallet keys
-    online_*_keys/            # Online (hot) wallet keys
+  key-pairs/                  # Key files of the prefunded accounts
 scripts/
   build-all.sh                # Orchestrates multi-branch/multi-arch Docker builds
   build-image.sh              # Builds a single Docker image (uses docker buildx)
-  spinup-testnet.sh           # Container entrypoint: starts PostgreSQL, Archive API, Accounts Manager, Mina daemons, NGINX
+  spinup-testnet.sh           # Container entrypoint: starts PostgreSQL and NGINX, then the network with minimina
+  lightnet-spec.sh            # Prints the minimina network spec from the container's env (NETWORK_TYPE, LOG_LEVEL, ...)
   test-image.sh               # Integration test: services health, transaction lifecycle, archive verification
   wait-for-network.sh         # Polls GraphQL for syncStatus: SYNCED (max 60 attempts, 10s interval)
 .github/workflows/
@@ -71,6 +68,7 @@ Profiles: `devnet` (full proofs), `lightnet` (no proofs)
 | `ARCHIVE_NODE_API_VERSION` | 2.0.0 | Archive GraphQL API version (`@o1-labs/mina-archive-node-graphql`, needs Node >= 22.12) |
 | `MINA_ACCOUNTS_MANAGER_VERSION` | 0.1.2 | Accounts manager version |
 | `EXPLORER_VERSION` | v0.2.2 | Mina Lightweight Explorer version |
+| `MINIMINA_VERSION` | 0.3.1 | minimina version, from `stable.apt.packages.minaprotocol.com` |
 
 ### Runtime Environment Variables
 
@@ -97,7 +95,9 @@ Profiles: `devnet` (full proofs), `lightnet` (no proofs)
 
 **Single-node**: One daemon as block producer + snark worker. ~1-2 min startup, ~900 MB RAM.
 
-**Multi-node**: 2 whales, 1 fish, 1 seed, 1 snark coordinator, 1 snark worker, 1 non-BP node. ~4-6 min startup, ~6 GB RAM.
+**Multi-node**: 2 whales, 1 fish, 1 seed, 1 snark coordinator, 2 snark workers, 1 non-BP node, and the archive node's own daemon. ~4-6 min startup, ~6 GB RAM.
+
+**minimina** ([o1-labs/minimina](https://github.com/o1-labs/minimina)) runs the network in native mode: `spinup-testnet.sh` writes the spec of `lightnet-spec.sh` to `/root/lightnet/network.toml` and runs `minimina network create` and `start` for the network `lightnet` (`/root/.minimina/lightnet`) on every start of the container. The spec's ports, the database name (`POSTGRES_DB`) and the log paths zkapp-cli reads (symlinks into `/root/.minimina/lightnet/logs`) are those of the former `mina-local-network.sh`. Block producer and libp2p keys come from the seed `lightnet`, so they are the same on every start. minimina also runs Archive-Node-API and the accounts manager (the image's own builds, `bin` in the spec).
 
 ## Services & APIs
 
@@ -130,14 +130,13 @@ The integration test (`scripts/test-image.sh`) verifies: daemon sync, accounts m
 
 ## Important Gotchas
 
-- **Wallet store is empty in the container.** Although `build-all.sh` copies key-pairs into a temp folder during build, the Docker build context is the repo root, so `configuration/mina-local-network/nodes/*/wallets/store/` directories in the image are empty. To send transactions, you must import a key file into the daemon via `importAccount` GraphQL mutation.
+- **The daemon's wallet is empty at start.** To send transactions, import a key file into the daemon via `importAccount` GraphQL mutation, or acquire the account with `?unlockAccount=true`: the accounts manager imports its key file (from `/root/lightnet/key-pairs`).
 - **Key file permissions.** The Mina daemon requires `0700` on the directory and `0600` on the key file. Use `docker cp` + `chmod` when importing keys at runtime.
-- **Accounts Manager does not auto-import keys.** `/acquire-account` returns `{pk, sk}` from the genesis ledger but does NOT import the key into the daemon's wallet. The `?unlockAccount=true` parameter only works if the key is already in the daemon's wallet store.
 - **NGINX proxy (port 8080) forwards to the daemon's REST port (3101 in single-node).** The daemon's actual REST port is base port + 1 (3100 + 1 = 3101). GraphQL mutations like `unlockAccount` work through this proxy.
-- **Genesis ledger accounts.** `daemon.json` contains ~1007 accounts. 1000 have `sk` populated; 7 infrastructure accounts (online/offline whales, fish, snark coordinator) have `sk: null`.
+- **Genesis ledger accounts.** `daemon.json` contains ~1007 accounts. 1000 have `sk` populated; 7 infrastructure accounts (online/offline whales, fish, snark coordinator) of the former `mina-local-network.sh` have `sk: null`. The image's genesis ledger (`/root/lightnet/accounts.json`) has only the 1000; minimina adds its block producers (11,550,000 MINA each, fish 65,500).
 - **Key-pairs directory** contains 1003 encrypted wallet files (JSON format with `xsalsa20poly1305` encryption). Password for all keys: `naughty blue worm`.
-- **mina-local-network.sh** is downloaded from the Mina repo at a pinned commit (`MINA_COMMIT` in Dockerfile). It is NOT part of this repo. In `--demo` mode with `--config inherit`, it preserves pre-existing config at `~/.mina-network/` and runs a single seed node.
-- **Do not bump `MINA_COMMIT` casually.** The script was rewritten upstream after the pinned commit (`aa93c44`, Nov 2025): flags that `spinup-testnet.sh` uses (`-sp`, `--demo`, `-a/--archive`, `-u`) no longer exist at Mina 4.0.2. The pinned script still drives the 4.0.2 daemon; a bump needs a matching rewrite of `spinup-testnet.sh`.
+- **minimina makes the archive database.** The postgres entrypoint starts with `POSTGRES_DB=postgres`; minimina creates the `POSTGRES_DB` database (default `archive`) with its schema, and refuses to drop a database it did not create.
+- **minimina comes from the signed stable repo** for amd64 and arm64 (arm64 since 0.3.1), so it installs in both images of a release.
 - **Stable repo architectures:** 4.0.2 and older are amd64 only. 4.0.4 also has Bookworm arm64 `mina-devnet-generic`, `mina-archive-devnet`, `mina-logproc` (and their dependencies), published by the separate arm64 release pipeline in MinaProtocol/mina. Stable has no `mina-devnet-generic-lightnet`. Use `--mina-runtime-profile lightnet` (writes the PROFILE hint) instead of `--mina-extra-profile`. The 4.0.2 debs are tent metapackages: `mina-devnet-generic` → `mina-generic` + `mina-devnet-profile`; `mina-archive-devnet` → `mina-archive-generic` + `mina-devnet-profile`.
 
 ## Key Conventions

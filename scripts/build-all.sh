@@ -242,7 +242,6 @@ function build-image() {
 
 
 TMP_FOLDER=$(mktemp -d)
-KEYS_LOCATION_TARGETS=(${TMP_FOLDER}/mina-local-network/nodes/fish_0/wallets/store/ ${TMP_FOLDER}/mina-local-network/nodes/node_0/wallets/store/ ${TMP_FOLDER}/mina-local-network/nodes/seed/wallets/store/ ${TMP_FOLDER}/mina-local-network/nodes/snark_coordinator/wallets/store/ ${TMP_FOLDER}/mina-local-network/nodes/snark_workers/worker_0/wallets/store/ ${TMP_FOLDER}/mina-local-network/nodes/whale_0/wallets/store/ ${TMP_FOLDER}/mina-local-network/nodes/whale_1/wallets/store/)
 
 echo ""
 echo "[INFO] Architectures:                     ${ARCHS[*]}"
@@ -262,15 +261,7 @@ echo "Preparing the filesystem..."
 cp -r ./configuration/mina-local-network ${TMP_FOLDER}/
 cp -r ./configuration/Dockerfile ${TMP_FOLDER}/
 cp -r ./configuration/nginx.conf ${TMP_FOLDER}/
-cp -r ./scripts/spinup-testnet.sh ${TMP_FOLDER}/
-
-echo "Copying key-pairs to wallet stores..."
-set +x
-for KEYS_LOCATION_TARGET in "${KEYS_LOCATION_TARGETS[@]}"; do
-  cp -r ./configuration/key-pairs/* ${KEYS_LOCATION_TARGET}
-done
-set -x
-echo "Key-pairs copied successfully."
+cp -r ./scripts/spinup-testnet.sh ./scripts/lightnet-spec.sh ${TMP_FOLDER}/
 
 CURRENT_DIR=$PWD
 

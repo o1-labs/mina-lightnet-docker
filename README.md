@@ -310,12 +310,15 @@ Wait until the response is `SYNCED`.
 Logs are stored inside the container at:
 
 ```shell
-# Single-node
-/root/logs/*.log
+# Every process of the network (minimina)
+/root/.minimina/lightnet/logs/*.log
 
-# Multi-node (additional logs)
-/root/.mina-network/mina-local-network-2-1-1/**/logs/*.log
+# Links to them where they were before
+/root/logs/*.log
+/root/.mina-network/mina-local-network-2-1-1/nodes/*/log.txt   # multi-node
 ```
+
+The container's log (`docker logs`) follows all of them.
 
 Mount a volume to persist logs:
 

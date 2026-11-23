@@ -1,29 +1,24 @@
 #!/usr/bin/env bash
 
+# Container entrypoint: starts PostgreSQL and NGINX, then the network with
+# minimina (https://github.com/o1-labs/minimina): the Mina daemons, the
+# archive node, Archive-Node-API and the accounts manager, from the spec
+# lightnet-spec.sh prints.
+
 set -x
 
 # Exit script when commands fail
 set -e
-# Kill background process when script exits
-trap "killall background" EXIT
 
+NETWORK=lightnet
+NETWORK_DIR="${HOME}/.minimina/${NETWORK}"
+SPEC_FILE="${HOME}/lightnet/network.toml"
+LOGS_DIR="${HOME}/logs"
 RDBMS_PORT=5432
-ARCHIVE_NODE_PORT=3089
-ARCHIVE_NODE_API_PORT=8282
-ARCHIVE_NODE_API_LOG_FILE_PATH=${HOME}/logs/archive-node-api.log
-LEDGER_FOLDER="${HOME}/.mina-network"
+# The postgres server minimina makes the archive database on
+export MINIMINA_POSTGRES_URI="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:${RDBMS_PORT}"
 
-echo ""
-echo "The network configuration files are located at ${LEDGER_FOLDER} ..."
-echo ""
-
-
-GENESIS_LEDGER_CONFIG_FILE=${LEDGER_FOLDER}/daemon.json
-
-
-KEYS_FOR_PERMISSIONS_UPDATE=(${LEDGER_FOLDER}/libp2p_keys ${LEDGER_FOLDER}/offline_fish_keys ${LEDGER_FOLDER}/offline_whale_keys ${LEDGER_FOLDER}/online_fish_keys ${LEDGER_FOLDER}/online_whale_keys ${LEDGER_FOLDER}/service-keys ${LEDGER_FOLDER}/snark_coordinator_keys ${LEDGER_FOLDER}/zkapp_keys )
-
-mkdir -p ${HOME}/logs || true
+mkdir -p "${LOGS_DIR}"
 
 wait-for-service() {
   echo ""
@@ -34,40 +29,15 @@ wait-for-service() {
   echo ""
 }
 
-prepare-rdbms() {
+start-rdbms() {
   echo ""
   echo "Starting the RDBMS service..."
   echo ""
   echo "export PATH=$PATH" >>/etc/profile
-  su - postgres -c "POSTGRES_USER=${POSTGRES_USER} POSTGRES_PASSWORD=${POSTGRES_PASSWORD} POSTGRES_DB=${POSTGRES_DB} PGDATA=/var/lib/postgresql/data /usr/local/bin/docker-entrypoint.sh postgres &"
+  # POSTGRES_DB=postgres: minimina makes the archive database (POSTGRES_DB)
+  # itself, and never drops a database it did not make
+  su - postgres -c "POSTGRES_USER=${POSTGRES_USER} POSTGRES_PASSWORD=${POSTGRES_PASSWORD} POSTGRES_DB=postgres PGDATA=/var/lib/postgresql/data /usr/local/bin/docker-entrypoint.sh postgres &"
   wait-for-service ${RDBMS_PORT}
-
-  echo "Updating the Archive Node RDBMS schema..."
-  echo ""
-  psql postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:${RDBMS_PORT}/${POSTGRES_DB} < /etc/mina/archive/create_schema.sql
-  echo ""
-}
-
-start-archive-node-api() {
-  echo ""
-  echo "Starting the Archive-Node-API service..."
-  echo "Archive-Node-API log file: ${ARCHIVE_NODE_API_LOG_FILE_PATH}"
-  echo ""
-  # Development-network defaults for @o1-labs/mina-archive-node-graphql >= 2.0.0,
-  # which is secure-by-default: no CORS, no introspection, no GraphiQL and a
-  # per-IP rate limit. A local test network wants all of them open.
-  # Override any of them with --env on `docker run`.
-  PORT=${ARCHIVE_NODE_API_PORT} \
-    PG_CONN="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:${RDBMS_PORT}/${POSTGRES_DB}" \
-    CORS_ORIGIN="${ARCHIVE_API_CORS_ORIGIN:-*}" \
-    ENABLE_INTROSPECTION="${ARCHIVE_API_ENABLE_INTROSPECTION:-true}" \
-    ENABLE_GRAPHIQL="${ARCHIVE_API_ENABLE_GRAPHIQL:-true}" \
-    ENABLE_ZKAPP_COMMANDS_QUERY="${ARCHIVE_API_ENABLE_ZKAPP_COMMANDS_QUERY:-true}" \
-    ENABLE_BLOCK_TRANSACTION_DETAILS="${ARCHIVE_API_ENABLE_BLOCK_TRANSACTION_DETAILS:-true}" \
-    RATE_LIMIT_MAX="${ARCHIVE_API_RATE_LIMIT_MAX:-0}" \
-    mina-archive-node-graphql >${ARCHIVE_NODE_API_LOG_FILE_PATH} 2>&1 &
-  wait-for-service ${ARCHIVE_NODE_API_PORT}
-  echo ""
 }
 
 nginx-reload() {
@@ -82,31 +52,27 @@ nginx-reload() {
   nginx -s reload
 }
 
-for ITEM in "${KEYS_FOR_PERMISSIONS_UPDATE[@]}"; do
-  chmod 0700 ${ITEM}
-  chmod 0600 ${ITEM}/*
-done
-
-if [[ $RUN_ARCHIVE_NODE == "true" ]]; then
-  prepare-rdbms
-  start-archive-node-api
-fi
-
-echo ""
-echo "Starting the Accounts-Manager service..."
-echo ""
-
-MINA_KEYS_PATH=${LEDGER_FOLDER}/nodes/whale_0/wallets/store "accounts-manager" "${GENESIS_LEDGER_CONFIG_FILE}" 8181 3085 "naughty blue worm" &
-
-if [[ $RUN_ARCHIVE_NODE == "true" ]]; then
-    ARCHIVE_CLI_ARGS=" --archive --pg-user ${POSTGRES_USER} --pg-passwd ${POSTGRES_PASSWORD} --pg-db ${POSTGRES_DB}"
-else
-    ARCHIVE_CLI_ARGS=""
-fi
-
-export MINA_EXE=mina
-export ARCHIVE_EXE=mina-archive
-export LOGPROC_EXE=mina-logproc
+# Links the log files where they were before minimina (zkapp-cli reads them
+# there): /root/logs and, for multi-node, the node directories of
+# mina-local-network.sh.
+link-logs() {
+  local logs="${NETWORK_DIR}/logs"
+  ln -sf "${logs}/archive-node-api.log" "${LOGS_DIR}/archive-node-api.log"
+  ln -sf "${logs}/accounts-manager.log" "${LOGS_DIR}/accounts-manager.log"
+  if [[ $NETWORK_TYPE == "single-node" ]]; then
+    ln -sf "${logs}/single-node.log" "${LOGS_DIR}/single-node-network.log"
+    ln -sf "${logs}/single-node-archive.log" "${LOGS_DIR}/archive-node.log"
+  else
+    local nodes="${HOME}/.mina-network/mina-local-network-2-1-1/nodes"
+    for node in seed whale_0 whale_1 fish_0 node_0 snark_coordinator; do
+      mkdir -p "${nodes}/${node}"
+      ln -sf "${logs}/${node}.log" "${nodes}/${node}/log.txt"
+    done
+    mkdir -p "${nodes}/snark_workers/worker_0" "${nodes}/archive"
+    ln -sf "${logs}/snark_worker-1.log" "${nodes}/snark_workers/worker_0/log.txt"
+    ln -sf "${logs}/archive-archive.log" "${nodes}/archive/log.txt"
+  fi
+}
 
 # Validate that the requested proof level is compatible with the compiled binary
 if [[ -n "${COMPILED_PROOF_LEVEL}" ]] && [[ "${PROOF_LEVEL}" != "${COMPILED_PROOF_LEVEL}" ]]; then
@@ -120,30 +86,53 @@ if [[ -n "${COMPILED_PROOF_LEVEL}" ]] && [[ "${PROOF_LEVEL}" != "${COMPILED_PROO
   exit 1
 fi
 
-if [[ $NETWORK_TYPE == "single-node" ]]; then
-
-  # Redirect 8080 to 3085 (daemon rest port) for single-node networks
-  nginx-reload 3085
-
-  echo ""
-  echo "Starting Single-Node network."
-  echo ""
-
-  bash ${HOME}/scripts/mina-local-network/mina-local-network.sh -sp 3084 --demo --config inherit -u delay_sec:0 -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} --override-slot-time ${SLOT_TIME} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS} --archive-server-port ${ARCHIVE_NODE_PORT}
-
-else
-  #TODO: Find out why Nginx needs to be reloaded twice to work properly and why 4006 ?
-  nginx-reload 4006
-
-  echo ""
-  echo "Starting Multi-Node network."
-  echo ""
-
-  if [[ $RUN_ARCHIVE_NODE == "true" ]]; then
-    ARCHIVE_CLI_ARGS=" --archive --pg-user ${POSTGRES_USER} --pg-passwd ${POSTGRES_PASSWORD} --pg-db ${POSTGRES_DB}"
-  fi
-
-  bash ${HOME}/scripts/mina-local-network/mina-local-network.sh -sp 3100 -w 2 -f 1 -n 1  --config inherit -u delay_sec:0 -ll ${LOG_LEVEL} -fll ${LOG_LEVEL} --override-slot-time ${SLOT_TIME} -pl ${PROOF_LEVEL}${ARCHIVE_CLI_ARGS} --archive-server-port ${ARCHIVE_NODE_PORT}
+if [[ $RUN_ARCHIVE_NODE == "true" ]]; then
+  start-rdbms
 fi
 
-wait
+# Development-network defaults for @o1-labs/mina-archive-node-graphql >= 2.0.0,
+# which is secure-by-default: no CORS, no introspection, no GraphiQL and a
+# per-IP rate limit. A local test network wants all of them open.
+# Override any of them with --env on `docker run`. minimina starts the server
+# with this environment.
+export CORS_ORIGIN="${ARCHIVE_API_CORS_ORIGIN:-*}"
+export ENABLE_INTROSPECTION="${ARCHIVE_API_ENABLE_INTROSPECTION:-true}"
+export ENABLE_GRAPHIQL="${ARCHIVE_API_ENABLE_GRAPHIQL:-true}"
+export ENABLE_ZKAPP_COMMANDS_QUERY="${ARCHIVE_API_ENABLE_ZKAPP_COMMANDS_QUERY:-true}"
+export ENABLE_BLOCK_TRANSACTION_DETAILS="${ARCHIVE_API_ENABLE_BLOCK_TRANSACTION_DETAILS:-true}"
+export RATE_LIMIT_MAX="${ARCHIVE_API_RATE_LIMIT_MAX:-0}"
+
+echo ""
+echo "Creating the ${NETWORK_TYPE} network..."
+echo ""
+"${HOME}/lightnet-spec.sh" >"${SPEC_FILE}"
+cat "${SPEC_FILE}"
+# a fresh network on every start of the container, as before; the processes
+# of a previous start are gone with it
+rm -rf "${NETWORK_DIR}"
+minimina --mode native --bin-path "$(dirname "$(command -v mina)")" \
+  network create -n "${NETWORK}" --spec "${SPEC_FILE}"
+
+if [[ $NETWORK_TYPE == "single-node" ]]; then
+  # Redirect 8080 to 3085 (daemon rest port) for single-node networks
+  nginx-reload 3085
+else
+  # 8080 is whale_1's GraphQL, as before
+  nginx-reload 4006
+fi
+
+echo ""
+echo "Starting the ${NETWORK_TYPE} network."
+echo ""
+minimina network start -n "${NETWORK}"
+link-logs
+
+stop-network() {
+  minimina network stop -n "${NETWORK}" || true
+  exit 0
+}
+trap stop-network TERM INT
+
+# the processes' logs are the container's log
+tail -n +1 -F "${NETWORK_DIR}"/logs/*.log &
+wait $!
