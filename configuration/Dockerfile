@@ -17,6 +17,8 @@ ARG MINA_DEB_VERSION
 ARG MINA_RUNTIME_PROFILE
 ARG PROOF_LEVEL=full
 ARG EXPLORER_VERSION=v0.2.2
+# minimina runs the network (https://github.com/o1-labs/minimina)
+ARG MINIMINA_VERSION=0.3.1
 
 ARG TARGETARCH
 
@@ -54,32 +56,24 @@ RUN echo 'Acquire::AllowWeakRepositories "true";' > /etc/apt/apt.conf.d/99-allow
     && npm --version \
     && rm /etc/apt/apt.conf.d/99-allow-weak-repos
 
-COPY ./configuration/mina-local-network/ /root/.mina-network/
-# Copy pre-encrypted genesis account key-pairs for daemon wallet import.
-# The accounts-manager uses MINA_KEYS_PATH to find these files when
-# unlockAccount=true is requested (see spinup-testnet.sh).
-COPY ./configuration/key-pairs/ /root/.mina-network/nodes/whale_0/wallets/store/
-RUN chmod 0700 /root/.mina-network/nodes/whale_0/wallets/store \
-    && chmod 0600 /root/.mina-network/nodes/whale_0/wallets/store/*
+# The prefunded accounts of the genesis ledger: those of daemon.json with a
+# private key, and their key files, which the accounts manager imports into
+# the daemon for unlockAccount=true. The other 7 accounts of daemon.json were
+# the keys of mina-local-network.sh's nodes and held most of the stake; with
+# them, the network's block producers would win fewer slots.
+COPY ./configuration/key-pairs/ /root/lightnet/key-pairs/
+COPY ./configuration/mina-local-network/daemon.json /root/lightnet/daemon.json
+RUN chmod 0700 /root/lightnet/key-pairs \
+    && chmod 0600 /root/lightnet/key-pairs/* \
+    && jq '{ledger: {accounts: [.ledger.accounts[] | select(.sk)]}}' /root/lightnet/daemon.json \
+        > /root/lightnet/accounts.json
 COPY ./configuration/nginx.conf /root/
 
-COPY ./scripts/spinup-testnet.sh /root/
-RUN chmod +x /root/spinup-testnet.sh
+COPY ./scripts/spinup-testnet.sh ./scripts/lightnet-spec.sh /root/
+RUN chmod +x /root/spinup-testnet.sh /root/lightnet-spec.sh
 
 COPY ./scripts/wait-for-network.sh /root/
 RUN chmod +x /root/wait-for-network.sh
-
-ENV MINA_COMMIT=aa93c44428e7c73cd7b77900634522108b746d18
-
-# download mina-local-network.sh script
-RUN mkdir -p /root/scripts/mina-local-network
-
-RUN curl -fsSL https://raw.githubusercontent.com/MinaProtocol/mina/${MINA_COMMIT}/scripts/mina-local-network/mina-local-network.sh -o /root/scripts/mina-local-network/mina-local-network.sh \
-    && curl -fsSL https://raw.githubusercontent.com/MinaProtocol/mina/${MINA_COMMIT}/scripts/mina-local-network/generate-mina-local-network-ledger.py -o /root/scripts/mina-local-network/generate-mina-local-network-ledger.py \
-    && curl -fsSL https://raw.githubusercontent.com/MinaProtocol/mina/${MINA_COMMIT}/scripts/mina-local-network/requirements.txt -o /root/scripts/mina-local-network/requirements.txt \
-    && chmod +x /root/scripts/mina-local-network/mina-local-network.sh \
-    && chmod +x /root/scripts/mina-local-network/generate-mina-local-network-ledger.py \
-    && pip3 install --no-cache-dir --break-system-packages -r /root/scripts/mina-local-network/requirements.txt
 
 # install mina
 RUN curl -fsSL ${MINA_REPO}/repo-signing-key.gpg -o /etc/apt/trusted.gpg.d/minaprotocol.gpg \
@@ -89,6 +83,15 @@ RUN curl -fsSL ${MINA_REPO}/repo-signing-key.gpg -o /etc/apt/trusted.gpg.d/minap
         mina-logproc${MINA_DEB_PIN} ${MINA_DEB_NAME}${MINA_DEB_PIN} mina-archive-${MINA_PROFILE}${MINA_DEB_PIN} \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# install minimina from mina's stable repository, signed with the same key
+RUN echo "deb https://stable.apt.packages.minaprotocol.com bookworm stable" \
+        > /etc/apt/sources.list.d/minimina.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends minimina=${MINIMINA_VERSION}-1 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && minimina --version
 
 # Select the runtime profile (see MINA_RUNTIME_PROFILE above).
 RUN if [ -n "${MINA_RUNTIME_PROFILE}" ]; then \
